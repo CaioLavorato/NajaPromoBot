@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useTransition } from 'react';
@@ -6,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Loader2, Search, Trash2 } from 'lucide-react';
+import { Save, Loader2, Trash2 } from 'lucide-react';
 import type { AppSettings, WhapiGroup } from '@/lib/types';
 import { getWhapiGroupsAction } from '@/app/actions/whatsapp';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -86,10 +87,15 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
   const filteredGroups = allGroups.filter(g => g.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const handleMeliAuth = () => {
-    if (!localConfig.meliAppId) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Por favor, insira o App ID do Mercado Livre.' });
+    if (!localConfig.meliAppId || !localConfig.meliClientSecret) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Por favor, preencha o App ID e o Client Secret do Mercado Livre.' });
       return;
     }
+    // Armazenar o client_secret e app_id temporariamente para que o callback possa usá-los.
+    // Em um app real, isso seria gerenciado de forma mais segura.
+    sessionStorage.setItem('meli_app_id', localConfig.meliAppId);
+    sessionStorage.setItem('meli_client_secret', localConfig.meliClientSecret);
+
     const redirectUri = window.location.origin + '/auth/meli/callback';
     const authUrl = `https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=${localConfig.meliAppId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
     window.open(authUrl, '_blank');
