@@ -9,3 +9,15 @@ export type Offer = {
   image: string;
   discount_pct?: number;
 };
+
+export type WhapiGroup = {
+  id: string;
+  name: string;
+}
+
+export type WhapiConfig = {
+  token: string;
+  selectedGroups: WhapiGroup[];
+  interval: number;
+  sendLimit: number;
+};
