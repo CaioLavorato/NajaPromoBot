@@ -24,15 +24,15 @@ const SummarizeOffersInputSchema = z.object({
       permalink: z.string(),
       image: z.string().optional(),
     })
-  ).describe('An array of offer objects to summarize and send to WhatsApp.'),
-  whapiGroupId: z.string().describe('The ID of the WhatsApp group to send the offers to.'),
-  whapiToken: z.string().describe('The token for the Whapi API.'),
+  ).describe('Um array de objetos de oferta para resumir e enviar para o WhatsApp.'),
+  whapiGroupId: z.string().describe('O ID do grupo do WhatsApp para enviar as ofertas.'),
+  whapiToken: z.string().describe('O token para a API Whapi.'),
 });
 export type SummarizeOffersInput = z.infer<typeof SummarizeOffersInputSchema>;
 
 const SummarizeOffersOutputSchema = z.object({
-  success: z.boolean().describe('Whether the offers were successfully sent to WhatsApp.'),
-  message: z.string().describe('A message indicating the status of the WhatsApp post.'),
+  success: z.boolean().describe('Se as ofertas foram enviadas com sucesso para o WhatsApp.'),
+  message: z.string().describe('Uma mensagem indicando o status da postagem no WhatsApp.'),
 });
 export type SummarizeOffersOutput = z.infer<typeof SummarizeOffersOutputSchema>;
 
@@ -40,11 +40,11 @@ export type SummarizeOffersOutput = z.infer<typeof SummarizeOffersOutputSchema>;
 const postToWhatsApp = ai.defineTool(
     {
         name: 'postToWhatsApp',
-        description: 'Posts a message to a WhatsApp group using the Whapi API.',
+        description: 'Posta uma mensagem em um grupo do WhatsApp usando a API Whapi.',
         inputSchema: z.object({
-            groupId: z.string().describe('The ID of the WhatsApp group.'),
-            message: z.string().describe('The message to send.'),
-            token: z.string().describe('The Whapi API token.'),
+            groupId: z.string().describe('O ID do grupo do WhatsApp.'),
+            message: z.string().describe('A mensagem a ser enviada.'),
+            token: z.string().describe('O token da API Whapi.'),
         }),
         outputSchema: z.boolean(),
     },
@@ -66,17 +66,17 @@ const postToWhatsApp = ai.defineTool(
             });
 
             if (!response.ok) {
-                console.error(`Whapi API error: ${response.status} ${response.statusText}`);
+                console.error(`Erro na API Whapi: ${response.status} ${response.statusText}`);
                 return false;
             }
 
             const data = await response.json();
-            console.log('Whapi API response:', data);
+            console.log('Resposta da API Whapi:', data);
 
             return data.success === true;
 
         } catch (error) {
-            console.error('Error posting to WhatsApp:', error);
+            console.error('Erro ao postar no WhatsApp:', error);
             return false;
         }
     }
@@ -87,19 +87,19 @@ const summarizeOffersPrompt = ai.definePrompt({
   input: {schema: SummarizeOffersInputSchema},
   output: {schema: SummarizeOffersOutputSchema},
   tools: [postToWhatsApp],
-  prompt: `You are an AI assistant helping to share deals on WhatsApp.
+  prompt: `Você é um assistente de IA ajudando a compartilhar ofertas no WhatsApp.
 
-You will receive a list of offers with titles, prices, discounts, and permalinks. Your task is to create a concise summary for each offer and then use the postToWhatsApp tool to send these summaries to a specified WhatsApp group.
+Você receberá uma lista de ofertas com títulos, preços, descontos e permalinks. Sua tarefa é criar um resumo conciso para cada oferta e, em seguida, usar a ferramenta postToWhatsApp para enviar esses resumos a um grupo de WhatsApp especificado.
 
-Here are the offers:
+Aqui estão as ofertas:
 {{#each offers}}
-- Title: {{title}}
-  Price: {{price}}
-  Discount: {{#if price_from}}{{#discount price_from price}}{{/if}}%
+- Título: {{title}}
+  Preço: {{price}}
+  Desconto: {{#if price_from}}{{#discount price_from price}}{{/if}}%
   Link: {{permalink}}
 {{/each}}
 
-Make sure that you don't spam the group and only post the best deals, combining multiple offers into one message where appropriate. If there are no good deals, you don't need to post anything.
+Certifique-se de não enviar spam para o grupo e poste apenas as melhores ofertas, combinando várias ofertas em uma única mensagem, quando apropriado. Se não houver boas ofertas, você não precisa postar nada.
 
 {{#each offers}}
 {{#if price_from}}
@@ -108,8 +108,8 @@ Make sure that you don't spam the group and only post the best deals, combining 
 {{/if}}
 
 
-To send the message to the group, call the postToWhatsApp tool with the group ID: {{{whapiGroupId}}} and token: {{{whapiToken}}}. The message should include the offer summary and permalink.
-`, // I had to include this line to avoid an error
+Para enviar a mensagem para o grupo, chame a ferramenta postToWhatsApp com o ID do grupo: {{{whapiGroupId}}} e o token: {{{whapiToken}}}. A mensagem deve incluir o resumo da oferta e o permalink.
+`, 
   helpers: {
     discount: (price_from: string, price: number) => {
       const p0 = parseFloat(price_from);
@@ -131,37 +131,10 @@ const summarizeOffersForWhatsAppFlow = ai.defineFlow(
     outputSchema: SummarizeOffersOutputSchema,
   },
   async input => {
-    const {offers, whapiGroupId, whapiToken} = input;
-
-    if (!offers || offers.length === 0) {
-      return {success: false, message: 'No offers to summarize.'};
+    const {output} = await summarizeOffersPrompt(input);
+    if (!output) {
+      return { success: false, message: 'O modelo de IA não retornou uma resposta.' };
     }
-
-    // Format the offers into a string that the prompt can use
-    const offerDetails = offers.map(offer => ({
-      title: offer.title,
-      price: offer.price,
-      price_from: offer.price_from,
-      permalink: offer.permalink,
-    }));
-
-    const promptInput = {
-      ...input,
-      offers: offerDetails,
-    };
-
-    const {output} = await summarizeOffersPrompt(promptInput);
-
-    // Call the postToWhatsApp tool to post the summarized offers to the WhatsApp group
-    const success = await postToWhatsApp({
-        groupId: whapiGroupId,
-        message: `Check out these deals! ${offerDetails.map(offer => `${offer.title}: ${offer.price} at ${offer.permalink}`).join('\n')}`,
-        token: whapiToken
-    });
-
-    return {
-      success: true,
-      message: `Offers summarized and sent to WhatsApp group ${whapiGroupId}.`,
-    };
+    return output;
   }
 );

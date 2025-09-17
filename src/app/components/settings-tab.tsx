@@ -25,25 +25,25 @@ export default function SettingsTab({ whapiConfig, setWhapiConfig }: SettingsTab
     };
     setWhapiConfig(newConfig);
     toast({
-      title: "Settings Saved",
-      description: "Your Whapi configuration has been updated.",
+      title: "Configurações Salvas",
+      description: "Sua configuração do Whapi foi atualizada.",
     });
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Settings</CardTitle>
+        <CardTitle>Configurações</CardTitle>
         <CardDescription>
-          Manage your integration settings here.
+          Gerencie suas configurações de integração aqui.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSave} className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>📱 WhatsApp Integration</CardTitle>
-              <CardDescription>Configure your Whapi.cloud API credentials.</CardDescription>
+              <CardTitle>📱 Integração com WhatsApp</CardTitle>
+              <CardDescription>Configure suas credenciais da API Whapi.cloud.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -62,14 +62,14 @@ export default function SettingsTab({ whapiConfig, setWhapiConfig }: SettingsTab
                   name="whapiToken"
                   type="password"
                   defaultValue={whapiConfig.token}
-                  placeholder="Your Whapi API token"
+                  placeholder="Seu token da API Whapi"
                 />
               </div>
             </CardContent>
           </Card>
           <Button type="submit" className="w-full">
             <Save className="mr-2 h-4 w-4" />
-            Save Settings
+            Salvar Configurações
           </Button>
         </form>
       </CardContent>

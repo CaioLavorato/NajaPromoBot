@@ -24,9 +24,9 @@ export default function PermalinkTools({ offers }: PermalinkToolsProps) {
 
   const handleCopy = (text: string, message: string) => {
     navigator.clipboard.writeText(text).then(() => {
-      toast({ title: 'Success', description: message });
+      toast({ title: 'Sucesso', description: message });
     }).catch(() => {
-      toast({ variant: "destructive", title: 'Error', description: 'Failed to copy to clipboard.' });
+      toast({ variant: "destructive", title: 'Erro', description: 'Falha ao copiar para a área de transferência.' });
     });
   };
 
@@ -45,33 +45,33 @@ export default function PermalinkTools({ offers }: PermalinkToolsProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>📋 Permalink Tools</CardTitle>
+        <CardTitle>📋 Ferramentas de Permalink</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <Label>All Permalinks ({total})</Label>
+          <Label>Todos os Permalinks ({total})</Label>
           <Textarea value={allLinks} readOnly rows={5} />
           <div className="flex gap-2">
-            <Button onClick={() => handleCopy(allLinks, 'All permalinks copied!')}><Copy /> Copy All</Button>
-            <Button variant="secondary" onClick={() => handleDownload(allLinks, 'permalinks_all.txt')}><Download /> Download All</Button>
+            <Button onClick={() => handleCopy(allLinks, 'Todos os permalinks copiados!')}><Copy /> Copiar Todos</Button>
+            <Button variant="secondary" onClick={() => handleDownload(allLinks, 'permalinks_todos.txt')}><Download /> Baixar Todos</Button>
           </div>
         </div>
         <div className="space-y-4">
-          <Label>Copy by Range</Label>
+          <Label>Copiar por Intervalo</Label>
           <div className="flex items-center gap-4">
             <div className='flex-1'>
-              <Label htmlFor="start-line">From</Label>
+              <Label htmlFor="start-line">De</Label>
               <Input id="start-line" type="number" min={1} max={total} value={startLine} onChange={(e) => setStartLine(Math.max(1, parseInt(e.target.value)))} />
             </div>
             <div className='flex-1'>
-              <Label htmlFor="end-line">To</Label>
+              <Label htmlFor="end-line">Até</Label>
               <Input id="end-line" type="number" min={1} max={total} value={endLine} onChange={(e) => setEndLine(Math.min(total, parseInt(e.target.value)))} />
             </div>
           </div>
           <Textarea value={sliceLinks} readOnly rows={5} />
            <div className="flex gap-2">
-            <Button onClick={() => handleCopy(sliceLinks, `Permalinks from ${startLine} to ${endLine} copied!`)}><Copy /> Copy Range</Button>
-            <Button variant="secondary" onClick={() => handleDownload(sliceLinks, `permalinks_${startLine}-${endLine}.txt`)}><Download /> Download Range</Button>
+            <Button onClick={() => handleCopy(sliceLinks, `Permalinks de ${startLine} a ${endLine} copiados!`)}><Copy /> Copiar Intervalo</Button>
+            <Button variant="secondary" onClick={() => handleDownload(sliceLinks, `permalinks_${startLine}-${endLine}.txt`)}><Download /> Baixar Intervalo</Button>
           </div>
         </div>
       </CardContent>

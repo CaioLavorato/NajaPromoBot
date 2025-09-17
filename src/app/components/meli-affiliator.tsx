@@ -16,11 +16,11 @@ export default function MeliAffiliator() {
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="scraper">
           <Bot className="mr-2 h-4 w-4" />
-          Scrape & Edit
+          Extrair e Editar
         </TabsTrigger>
         <TabsTrigger value="settings">
           <Settings className="mr-2 h-4 w-4" />
-          Settings
+          Configurações
         </TabsTrigger>
       </TabsList>
       <TabsContent value="scraper">

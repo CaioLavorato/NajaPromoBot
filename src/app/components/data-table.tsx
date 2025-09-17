@@ -30,12 +30,12 @@ export default function DataTable({ offers }: DataTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[80px]">Image</TableHead>
-            <TableHead>Headline</TableHead>
-            <TableHead>Title</TableHead>
-            <TableHead className="text-right">Discount</TableHead>
-            <TableHead className="text-right">Original Price</TableHead>
-            <TableHead className="text-right">Offer Price</TableHead>
+            <TableHead className="w-[80px]">Imagem</TableHead>
+            <TableHead>Chamada</TableHead>
+            <TableHead>Título</TableHead>
+            <TableHead className="text-right">Desconto</TableHead>
+            <TableHead className="text-right">Preço Original</TableHead>
+            <TableHead className="text-right">Preço da Oferta</TableHead>
             <TableHead>Link</TableHead>
           </TableRow>
         </TableHeader>
@@ -85,7 +85,7 @@ export default function DataTable({ offers }: DataTableProps) {
                   className="flex items-center gap-1 text-primary hover:underline"
                 >
                   <ExternalLink className="h-4 w-4" />
-                  View
+                  Ver
                 </a>
               </TableCell>
             </TableRow>

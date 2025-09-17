@@ -6,7 +6,7 @@ import type { Offer } from "@/lib/types";
 import { z } from "zod";
 
 const ScrapeSchema = z.object({
-  urlsText: z.string().min(1, "Please provide at least one URL."),
+  urlsText: z.string().min(1, "Forneça pelo menos uma URL."),
   maxItems: z.number().min(10).max(1000),
   doGenerateHeadline: z.boolean(),
   minDiscount: z.number().min(0).max(100),
@@ -25,7 +25,7 @@ export async function scrapeOffersAction(
   });
 
   if (!validatedFields.success) {
-    return { data: null, error: validatedFields.error.flatten().fieldErrors.urlsText?.[0] || "Invalid input." };
+    return { data: null, error: validatedFields.error.flatten().fieldErrors.urlsText?.[0] || "Entrada inválida." };
   }
 
   const { urlsText, maxItems, doGenerateHeadline, minDiscount } = validatedFields.data;
@@ -61,12 +61,12 @@ export async function scrapeOffersAction(
     }
     
     if (items.length === 0) {
-        return { data: [], message: "No items found matching your criteria." };
+        return { data: [], message: "Nenhum item encontrado com seus critérios." };
     }
 
-    return { data: items, message: `Successfully scraped ${items.length} items.` };
+    return { data: items, message: `Foram raspados ${items.length} itens com sucesso.` };
   } catch (error) {
     console.error("Scraping failed:", error);
-    return { data: null, error: error instanceof Error ? error.message : "An unknown error occurred during scraping." };
+    return { data: null, error: error instanceof Error ? error.message : "Ocorreu um erro durante a extração." };
   }
 }

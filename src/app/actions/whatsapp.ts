@@ -6,8 +6,8 @@ import type { Offer } from '@/lib/types';
 import { z } from 'zod';
 
 const WhatsAppActionSchema = z.object({
-  whapiGroupId: z.string().min(1, 'Group ID is required.'),
-  whapiToken: z.string().min(1, 'Token is required.'),
+  whapiGroupId: z.string().min(1, 'O ID do grupo é obrigatório.'),
+  whapiToken: z.string().min(1, 'O token é obrigatório.'),
 });
 
 export async function sendToWhatsAppAction(
@@ -15,7 +15,7 @@ export async function sendToWhatsAppAction(
   formData: FormData
 ): Promise<{ success: boolean; message: string }> {
   if (!offers || offers.length === 0) {
-    return { success: false, message: 'No offers to send.' };
+    return { success: false, message: 'Nenhuma oferta para enviar.' };
   }
 
   const validatedFields = WhatsAppActionSchema.safeParse({
@@ -24,25 +24,25 @@ export async function sendToWhatsAppAction(
   });
 
   if (!validatedFields.success) {
-    return { success: false, message: "WhatsApp Group ID and Token are required." };
+    return { success: false, message: "O ID do grupo e o Token do WhatsApp são obrigatórios." };
   }
   
   const { whapiGroupId, whapiToken } = validatedFields.data;
 
   const now = new Date();
-  const timeOfDay = now.getHours() < 12 ? 'morning' : now.getHours() < 18 ? 'afternoon' : 'evening';
+  const timeOfDay = now.getHours() < 12 ? 'manhã' : now.getHours() < 18 ? 'tarde' : 'noite';
   const averageDiscount = offers.reduce((acc, o) => acc + (o.discount_pct || 0), 0) / offers.length;
   
   const postControlInput = {
     timeOfDay,
-    offerAttractiveness: `Average discount is ${averageDiscount.toFixed(0)}%`,
+    offerAttractiveness: `Desconto médio é de ${averageDiscount.toFixed(0)}%`,
   };
   
   try {
     const controlResult = await controlPostFrequency(postControlInput);
 
     if (!controlResult.shouldPost) {
-      return { success: false, message: `Skipping post: ${controlResult.reason}` };
+      return { success: false, message: `Postagem ignorada: ${controlResult.reason}` };
     }
 
     const offersToSummarize = offers.map(o => ({
@@ -64,8 +64,8 @@ export async function sendToWhatsAppAction(
 
     return summaryResult;
   } catch (error) {
-    console.error("WhatsApp Action Error:", error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-    return { success: false, message: `Failed to send to WhatsApp: ${errorMessage}` };
+    console.error("Erro na ação do WhatsApp:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
+    return { success: false, message: `Falha ao enviar para o WhatsApp: ${errorMessage}` };
   }
 }

@@ -11,22 +11,22 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const ControlPostFrequencyInputSchema = z.object({
-  timeOfDay: z.string().describe('The current time of day (e.g., morning, afternoon, evening).'),
+  timeOfDay: z.string().describe('A hora atual do dia (ex: manhã, tarde, noite).'),
   offerAttractiveness: z
     .string()
-    .describe("A description of how attractive the offer is (e.g., 'very attractive', 'moderately attractive', 'not very attractive')."),
+    .describe("Uma descrição do quão atrativa é a oferta (ex: 'muito atrativa', 'moderadamente atrativa', 'pouco atrativa')."),
   lastPostTime: z
     .string()
     .optional()
-    .describe('The time of the last post to the WhatsApp group, if any.'),
+    .describe('A hora da última postagem no grupo do WhatsApp, se houver.'),
 });
 export type ControlPostFrequencyInput = z.infer<typeof ControlPostFrequencyInputSchema>;
 
 const ControlPostFrequencyOutputSchema = z.object({
-  shouldPost: z.boolean().describe('Whether or not a post should be made to the WhatsApp group.'),
+  shouldPost: z.boolean().describe('Se uma postagem deve ou não ser feita no grupo do WhatsApp.'),
   reason: z
     .string()
-    .describe('The reason for the decision (e.g., time of day is optimal, offer is very attractive, last post was too recent).'),
+    .describe('A razão para a decisão (ex: o horário do dia é ideal, a oferta é muito atrativa, a última postagem foi muito recente).'),
 });
 export type ControlPostFrequencyOutput = z.infer<typeof ControlPostFrequencyOutputSchema>;
 
@@ -38,25 +38,25 @@ const prompt = ai.definePrompt({
   name: 'controlPostFrequencyPrompt',
   input: {schema: ControlPostFrequencyInputSchema},
   output: {schema: ControlPostFrequencyOutputSchema},
-  prompt: `You are an expert in managing social media engagement, especially for promotional offers.
+  prompt: `Você é um especialista em gerenciar engajamento em redes sociais, especialmente para ofertas promocionais.
 
-Based on the current time of day, the attractiveness of the offer, and the time of the last post, decide whether or not a post should be made to a WhatsApp group. Your goal is to maximize engagement while avoiding spamming the group.
+Com base na hora atual do dia, na atratividade da oferta e na hora da última postagem, decida se uma postagem deve ou não ser feita em um grupo de WhatsApp. Seu objetivo é maximizar o engajamento enquanto evita spammar o grupo.
 
-Consider these factors:
+Considere estes fatores:
 
-- Time of Day: Some times of day are better for engagement than others. For example, evenings and lunch breaks might be optimal.
-- Offer Attractiveness: Highly attractive offers might warrant more frequent posts.
-- Last Post Time: Avoid posting too frequently. A reasonable interval between posts is important.
+- Hora do Dia: Algumas horas do dia são melhores para engajamento do que outras. Por exemplo, noites e horários de almoço podem ser ideais.
+- Atratividade da Oferta: Ofertas altamente atrativas podem justificar postagens mais frequentes.
+- Hora da Última Postagem: Evite postar com muita frequência. Um intervalo razoável entre as postagens é importante.
 
-Here is the information:
+Aqui estão as informações:
 
-Time of Day: {{{timeOfDay}}}
-Offer Attractiveness: {{{offerAttractiveness}}}
-Last Post Time: {{{lastPostTime}}}
+Hora do Dia: {{{timeOfDay}}}
+Atratividade da Oferta: {{{offerAttractiveness}}}
+Hora da Última Postagem: {{{lastPostTime}}}
 
-Based on this, should a post be made? Explain your reasoning.
+Com base nisso, uma postagem deve ser feita? Explique seu raciocínio.
 
-Output ONLY a JSON object that conforms to the schema. Do not provide any surrounding text.`,
+Produza APENAS um objeto JSON que esteja em conformidade com o esquema. Não forneça nenhum texto ao redor.`,
 });
 
 const controlPostFrequencyFlow = ai.defineFlow(
@@ -67,6 +67,9 @@ const controlPostFrequencyFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) {
+      throw new Error("O modelo de IA não retornou uma resposta.");
+    }
+    return output;
   }
 );

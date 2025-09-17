@@ -9,7 +9,7 @@ export default function Home() {
             MeliAffiliator
           </h1>
           <p className="mt-2 text-lg text-muted-foreground">
-            Scrape Mercado Livre offers, manage affiliate links, and post to
+            Extraia ofertas do Mercado Livre, gerencie links de afiliados e poste no
             WhatsApp.
           </p>
         </header>
