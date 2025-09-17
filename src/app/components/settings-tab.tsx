@@ -91,12 +91,12 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
       toast({ variant: 'destructive', title: 'Erro', description: 'Por favor, preencha o App ID e o Client Secret do Mercado Livre.' });
       return;
     }
-    // Armazenar o client_secret e app_id temporariamente para que o callback possa usá-los.
-    // Em um app real, isso seria gerenciado de forma mais segura.
+    
     sessionStorage.setItem('meli_app_id', localConfig.meliAppId);
     sessionStorage.setItem('meli_client_secret', localConfig.meliClientSecret);
 
-    const redirectUri = window.location.origin + '/auth/meli/callback';
+    const { protocol, hostname } = window.location;
+    const redirectUri = `${protocol}//${hostname}/auth/meli/callback`;
     const authUrl = `https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=${localConfig.meliAppId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
     window.open(authUrl, '_blank');
   };
