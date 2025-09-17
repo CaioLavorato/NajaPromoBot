@@ -15,6 +15,7 @@ export default function MeliCallbackPage() {
   useEffect(() => {
     const code = searchParams.get('code');
     const error = searchParams.get('error');
+    // const state = searchParams.get('state'); // Opcional para validação CSRF
 
     if (error) {
       setStatus('error');
@@ -28,11 +29,14 @@ export default function MeliCallbackPage() {
     }
 
     (async () => {
-      const result = await exchangeMeliCodeAction(code);
+      // O ID e o Secret são lidos do .env no servidor.
+      // O token será salvo em cookies httpOnly pelo servidor.
+      const result = await exchangeMeliCodeAction(code); 
+      
       if (result.success) {
         setStatus('success');
         setMessage('Autenticação concluída com sucesso! O token foi salvo no servidor. Você pode fechar esta aba.');
-        // Não salvamos mais no localStorage, o servidor gerencia o token.
+        // Não salvamos mais no localStorage, o servidor gerencia o token via cookies.
       } else {
         setStatus('error');
         setMessage(result.error || 'Ocorreu um erro desconhecido.');

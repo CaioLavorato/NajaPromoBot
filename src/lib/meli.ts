@@ -1,39 +1,37 @@
 // src/lib/meli.ts
-import fs from 'fs/promises';
-import path from 'path';
+import { cookies } from 'next/headers';
 
-// Em produção, use um banco de dados ou um armazenamento seguro.
-// O arquivo token.json deve estar no .gitignore em um projeto real.
-const TOKEN_PATH = path.resolve(process.cwd(), 'token.json');
-
-type MeliToken = {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: number; // Timestamp de quando o token expira
+type MeliTokenData = {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
 };
 
-async function readToken(): Promise<MeliToken | null> {
-  try {
-    const data = await fs.readFile(TOKEN_PATH, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    // Se o arquivo não existir ou for inválido, retorna null.
-    return null;
-  }
+export async function saveToken(data: MeliTokenData): Promise<void> {
+  const now = new Date();
+  
+  // Access token (curta duração)
+  const accessExpires = new Date(now.getTime() + data.expires_in * 1000);
+  cookies().set('meli_access_token', data.access_token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV !== 'development',
+    sameSite: 'lax',
+    path: '/',
+    expires: accessExpires,
+  });
+
+  // Refresh token (longa duração, ex: 6 meses)
+  const refreshExpires = new Date(now.getTime() + 6 * 30 * 24 * 60 * 60 * 1000);
+  cookies().set('meli_refresh_token', data.refresh_token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV !== 'development',
+    sameSite: 'lax',
+    path: '/',
+    expires: refreshExpires,
+  });
 }
 
-export async function saveToken(data: any): Promise<void> {
-  const token: MeliToken = {
-    accessToken: data.access_token,
-    refreshToken: data.refresh_token,
-    // Define a expiração para 50 minutos a partir de agora (a duração é de 60 min)
-    // para ter uma margem de segurança.
-    expiresAt: Date.now() + data.expires_in * 1000 - 10 * 60 * 1000,
-  };
-  await fs.writeFile(TOKEN_PATH, JSON.stringify(token, null, 2), 'utf-8');
-}
-
-async function refreshToken(currentRefreshToken: string): Promise<MeliToken> {
+async function refreshToken(currentRefreshToken: string): Promise<MeliTokenData> {
   const client_id = process.env.ML_CLIENT_ID;
   const client_secret = process.env.ML_CLIENT_SECRET;
 
@@ -59,29 +57,33 @@ async function refreshToken(currentRefreshToken: string): Promise<MeliToken> {
 
   if (!resp.ok) {
     console.error('Erro ao renovar token ML:', data);
-    throw new Error(data.message || 'Falha ao renovar o token de acesso.');
+    // Se o refresh token falhar, limpa os cookies para forçar novo login
+    cookies().set('meli_access_token', '', { path: '/', maxAge: 0 });
+    cookies().set('meli_refresh_token', '', { path: '/', maxAge: 0 });
+    throw new Error(data.message || 'Falha ao renovar o token de acesso. Por favor, autentique-se novamente.');
   }
 
+  // Salva os novos tokens (access e refresh) nos cookies
   await saveToken(data);
-  const newToken = await readToken();
-  if (!newToken) throw new Error('Falha ao ler o token recém-renovado.');
   
-  return newToken;
+  return data;
 }
 
 export async function getValidAccessToken(): Promise<string> {
-  const token = await readToken();
+  const accessToken = cookies().get('meli_access_token')?.value;
 
-  if (!token) {
-    throw new Error('Nenhum token encontrado. Por favor, autentique-se primeiro.');
+  // Se o access token existir e for válido, retorna ele.
+  if (accessToken) {
+    return accessToken;
   }
 
-  // Verifica se o token está expirado ou vai expirar em breve
-  if (Date.now() >= token.expiresAt) {
-    console.log('Token do Mercado Livre expirado. Renovando...');
-    const newToken = await refreshToken(token.refreshToken);
-    return newToken.accessToken;
+  // Se não houver access token, tenta usar o refresh token.
+  const refreshTokenValue = cookies().get('meli_refresh_token')?.value;
+  if (!refreshTokenValue) {
+    throw new Error('Sessão expirada. Por favor, autentique-se novamente.');
   }
-
-  return token.accessToken;
+  
+  console.log('Token do Mercado Livre expirado ou ausente. Renovando...');
+  const newData = await refreshToken(refreshTokenValue);
+  return newData.access_token;
 }

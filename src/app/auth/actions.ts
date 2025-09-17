@@ -30,8 +30,8 @@ function getRedirectUri() {
 }
 
 // ------------- Ações -------------
-export async function generateMeliAuthUrlAction(clientId?: string): Promise<{ success: boolean, authUrl?: string, error?: string }> {
-  const ML_CLIENT_ID = clientId || process.env.ML_CLIENT_ID;
+export async function generateMeliAuthUrlAction(): Promise<{ success: boolean, authUrl?: string, error?: string }> {
+  const ML_CLIENT_ID = process.env.ML_CLIENT_ID;
   if (!ML_CLIENT_ID) return { success: false, error: 'Client ID não configurado.' };
 
   try {
@@ -43,13 +43,21 @@ export async function generateMeliAuthUrlAction(clientId?: string): Promise<{ su
 
     // guarda o verifier em cookie (servidor vai ler no /callback)
     cookies().set('meli_pkce_verifier', verifier, {
-      httpOnly: true, sameSite: 'lax', secure: true, path: '/', maxAge: 600 // 10 min
+      httpOnly: true, 
+      secure: process.env.NODE_ENV !== 'development',
+      sameSite: 'lax', 
+      path: '/', 
+      maxAge: 600 // 10 min
     });
 
     // opcional: state anti-CSRF
     const state = crypto.randomBytes(16).toString('hex');
     cookies().set('meli_oauth_state', state, {
-      httpOnly: true, sameSite: 'lax', secure: true, path: '/', maxAge: 600
+      httpOnly: true, 
+      secure: process.env.NODE_ENV !== 'development',
+      sameSite: 'lax', 
+      path: '/', 
+      maxAge: 600
     });
 
     const params = new URLSearchParams({
@@ -69,13 +77,13 @@ export async function generateMeliAuthUrlAction(clientId?: string): Promise<{ su
   }
 }
 
-export async function exchangeMeliCodeAction(code: string, passedClientId?: string, passedClientSecret?: string)
-: Promise<{ success: boolean; accessToken?: string; raw?: any; error?: string }> {
+export async function exchangeMeliCodeAction(code: string)
+: Promise<{ success: boolean; raw?: any; error?: string }> {
   try {
     if (!code) return { success: false, error: 'Código de autorização não fornecido.' };
 
-    const client_id = passedClientId || process.env.ML_CLIENT_ID;
-    const client_secret = passedClientSecret || process.env.ML_CLIENT_SECRET;
+    const client_id = process.env.ML_CLIENT_ID;
+    const client_secret = process.env.ML_CLIENT_SECRET;
     if (!client_id || !client_secret) return { success: false, error: 'Credenciais do aplicativo não configuradas.' };
 
     const redirect_uri = getRedirectUri();
@@ -117,10 +125,10 @@ export async function exchangeMeliCodeAction(code: string, passedClientId?: stri
     cookies().set('meli_pkce_verifier', '', { path: '/', maxAge: 0 });
     cookies().set('meli_oauth_state', '', { path: '/', maxAge: 0 });
 
-    // Salva o token (access e refresh) no lado do servidor
+    // Salva o token (access e refresh) nos cookies httpOnly
     await saveToken(data);
 
-    return { success: true, accessToken: data.access_token, raw: data };
+    return { success: true, raw: data };
   } catch (error) {
     console.error('Erro na troca de token ML:', error);
     const msg = error instanceof Error ? error.message : 'Erro interno.';
