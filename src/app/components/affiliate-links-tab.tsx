@@ -121,17 +121,19 @@ export default function AffiliateLinksTab({ offers, setOffers }: AffiliateLinksT
           </div>
         )}
 
-        <div className="space-y-2">
-          <Label htmlFor="affiliate-links">Affiliate Links (one per line, in order)</Label>
-          <Textarea id="affiliate-links" value={affiliateLinks} onChange={(e) => setAffiliateLinks(e.target.value)} rows={6} placeholder="https://..." />
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="affiliate-links">Affiliate Links (one per line, in order)</Label>
+            <Textarea id="affiliate-links" value={affiliateLinks} onChange={(e) => setAffiliateLinks(e.target.value)} rows={6} placeholder="https://..." />
+          </div>
+          <div className="space-y-4">
+             <div className="flex items-center space-x-2">
+              <Checkbox id="regenerate-headline" checked={regenerateHeadline} onCheckedChange={(checked) => setRegenerateHeadline(!!checked)} />
+              <Label htmlFor="regenerate-headline">Generate/update headline by discount</Label>
+            </div>
+            <Button onClick={handleApply} className="w-full"><Replace /> Apply Replacement</Button>
+          </div>
         </div>
-        
-        <div className="flex items-center space-x-2">
-          <Checkbox id="regenerate-headline" checked={regenerateHeadline} onCheckedChange={(checked) => setRegenerateHeadline(!!checked)} />
-          <Label htmlFor="regenerate-headline">Generate/update headline by discount</Label>
-        </div>
-
-        <Button onClick={handleApply} className="w-full"><Replace /> Apply Replacement</Button>
         
         {displayOffers && displayOffers.length > 0 && (
           <div className="space-y-8 pt-4">

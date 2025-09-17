@@ -22,6 +22,7 @@ import { downloadCSV, downloadXLSX } from '@/lib/export';
 type ScrapeTabProps = {
   offers: Offer[] | null;
   setOffers: (offers: Offer[] | null) => void;
+  whapiConfig: { groupId: string; token: string };
 };
 
 const DEFAULT_URLS = [
@@ -39,7 +40,7 @@ function SubmitButton() {
   );
 }
 
-export default function ScrapeTab({ offers, setOffers }: ScrapeTabProps) {
+export default function ScrapeTab({ offers, setOffers, whapiConfig }: ScrapeTabProps) {
   const { toast } = useToast();
   const [scrapeState, formAction] = useActionState(scrapeOffersAction, { data: null });
   const [isWhatsAppPending, startWhatsAppTransition] = useTransition();
@@ -62,7 +63,15 @@ export default function ScrapeTab({ offers, setOffers }: ScrapeTabProps) {
       toast({ variant: 'destructive', title: 'No offers to send' });
       return;
     }
-    const formData = new FormData(event.currentTarget);
+     if (!whapiConfig.groupId || !whapiConfig.token) {
+      toast({ variant: 'destructive', title: 'WhatsApp Not Configured', description: 'Please set your Whapi Group ID and Token in the Settings tab.'});
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('whapiGroupId', whapiConfig.groupId);
+    formData.append('whapiToken', whapiConfig.token);
+
     startWhatsAppTransition(async () => {
       const result = await sendToWhatsAppAction(offers, formData);
       if (result.success) {
@@ -145,14 +154,13 @@ export default function ScrapeTab({ offers, setOffers }: ScrapeTabProps) {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSendToWhatsApp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="whapiGroupId">Whapi Group ID</Label>
-                    <Input id="whapiGroupId" name="whapiGroupId" placeholder="1234567890@g.us" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="whapiToken">Whapi Token</Label>
-                    <Input id="whapiToken" name="whapiToken" type="password" placeholder="Your Whapi API token" required />
-                  </div>
+                   <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Ready to Send</AlertTitle>
+                    <AlertDescription>
+                      Whapi configuration is managed in the Settings tab. Click send to post the offers.
+                    </AlertDescription>
+                  </Alert>
                   <Button type="submit" className="w-full" disabled={isWhatsAppPending}>
                     {isWhatsAppPending ? <Loader2 className="animate-spin" /> : <Send />}
                     Send to Group
