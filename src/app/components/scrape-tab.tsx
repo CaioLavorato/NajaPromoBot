@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Wand2, Trash2, Download, Send } from 'lucide-react';
+import { Loader2, AlertCircle, Wand2, Trash2, Download, Send, Replace } from 'lucide-react';
 
 import type { Offer } from '@/lib/types';
 import { scrapeOffersAction } from '@/app/actions/scrape';
@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import DataTable from './data-table';
 import PermalinkTools from './permalink-tools';
 import { downloadCSV, downloadXLSX } from '@/lib/export';
+import { generateHeadline } from '@/lib/headline-generator';
 
 type ScrapeTabProps = {
   offers: Offer[] | null;
@@ -44,6 +45,9 @@ export default function ScrapeTab({ offers, setOffers, whapiConfig }: ScrapeTabP
   const { toast } = useToast();
   const [scrapeState, formAction] = useActionState(scrapeOffersAction, { data: null });
   const [isWhatsAppPending, startWhatsAppTransition] = useTransition();
+  
+  const [affiliateLinks, setAffiliateLinks] = useState('');
+  const [regenerateHeadline, setRegenerateHeadline] = useState(true);
 
   useEffect(() => {
     if (scrapeState?.data) {
@@ -56,6 +60,33 @@ export default function ScrapeTab({ offers, setOffers, whapiConfig }: ScrapeTabP
       toast({ variant: 'destructive', title: 'Scraping Failed', description: scrapeState.error });
     }
   }, [scrapeState, setOffers, toast]);
+  
+  const handleApplyAffiliateLinks = () => {
+    if (!offers) {
+      toast({ variant: 'destructive', title: 'No Source Data', description: 'Please scrape offers first.' });
+      return;
+    }
+    const links = affiliateLinks.split('\n').filter(l => l.trim() !== '');
+    if (links.length === 0) {
+      toast({ variant: 'destructive', title: 'No Affiliate Links', description: 'Please paste at least one affiliate link.' });
+      return;
+    }
+
+    const newOffers = offers.map((offer, index) => {
+      let newOffer = { ...offer };
+      if (index < links.length) {
+        newOffer.permalink = links[index];
+      }
+      if (regenerateHeadline) {
+        newOffer.headline = generateHeadline(newOffer.title, newOffer.price_from, newOffer.price);
+      }
+      return newOffer;
+    });
+
+    setOffers(newOffers);
+    toast({ title: 'Success', description: `Replaced ${Math.min(links.length, newOffers.length)} permalinks.` });
+  };
+
 
   const handleSendToWhatsApp = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -87,7 +118,7 @@ export default function ScrapeTab({ offers, setOffers, whapiConfig }: ScrapeTabP
       <CardHeader>
         <CardTitle>Scraper Configuration</CardTitle>
         <CardDescription>
-          Paste Mercado Livre offer URLs, set your parameters, and start scraping.
+          Paste Mercado Livre offer URLs, set parameters, scrape, edit, and post.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -129,12 +160,32 @@ export default function ScrapeTab({ offers, setOffers, whapiConfig }: ScrapeTabP
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>No Results Yet</AlertTitle>
             <AlertDescription>
-              Configure your scrape and click "Scrape Now" to see results.
+              Configure and click "Scrape Now" to see results.
             </AlertDescription>
           </Alert>
         </CardFooter>
       ) : (
         <CardContent className="space-y-8">
+            <section className="grid md:grid-cols-2 gap-8">
+               <Card>
+                  <CardHeader>
+                      <CardTitle>🔗 Affiliate Link Replacement</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                          <Label htmlFor="affiliate-links">Affiliate Links (one per line, in order)</Label>
+                          <Textarea id="affiliate-links" value={affiliateLinks} onChange={(e) => setAffiliateLinks(e.target.value)} rows={6} placeholder="https://..." />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                          <Checkbox id="regenerate-headline" checked={regenerateHeadline} onCheckedChange={(checked) => setRegenerateHeadline(!!checked)} />
+                          <Label htmlFor="regenerate-headline">Generate/update headline by discount</Label>
+                      </div>
+                      <Button onClick={handleApplyAffiliateLinks} className="w-full"><Replace /> Apply Replacement</Button>
+                  </CardContent>
+               </Card>
+               <PermalinkTools offers={offers} />
+            </section>
+        
           <section>
             <h3 className='font-headline text-2xl font-semibold mb-4'>Scraped Offers ({offers.length})</h3>
             <DataTable offers={offers} />
@@ -144,9 +195,7 @@ export default function ScrapeTab({ offers, setOffers, whapiConfig }: ScrapeTabP
             </div>
           </section>
 
-          <section className="grid md:grid-cols-2 gap-8">
-            <PermalinkTools offers={offers} />
-            
+          <section>
             <Card>
               <CardHeader>
                 <CardTitle>📱 Send to WhatsApp</CardTitle>
