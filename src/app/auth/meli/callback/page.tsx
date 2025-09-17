@@ -32,7 +32,6 @@ export default function MeliCallbackPage() {
     const performTokenExchange = async () => {
       const meliAppId = sessionStorage.getItem('meli_app_id');
       const meliClientSecret = sessionStorage.getItem('meli_client_secret');
-      const redirectUri = window.location.origin + '/auth/meli/callback';
 
       if (!meliAppId || !meliClientSecret) {
         setStatus('error');
@@ -40,13 +39,14 @@ export default function MeliCallbackPage() {
         return;
       }
       
-      const result = await exchangeMeliCodeAction(code, meliAppId, meliClientSecret, redirectUri);
+      const result = await exchangeMeliCodeAction(code, meliAppId, meliClientSecret);
 
       if (result.success) {
         setStatus('success');
         setMessage('Autenticação com Mercado Livre concluída com sucesso! Você já pode fechar esta aba.');
+        // Em um app real, você salvaria este token de forma segura, por exemplo, no localStorage.
+        // localStorage.setItem('meli_access_token', result.accessToken); 
         console.log('Token de Acesso:', result.accessToken);
-        // Em um app real, você salvaria este token de forma segura
       } else {
         setStatus('error');
         setMessage(result.error || 'Ocorreu um erro desconhecido.');

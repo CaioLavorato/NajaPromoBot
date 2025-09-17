@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Save, Loader2, Trash2 } from 'lucide-react';
 import type { AppSettings, WhapiGroup } from '@/lib/types';
 import { getWhapiGroupsAction } from '@/app/actions/whatsapp';
+import { generateMeliAuthUrlAction } from '@/app/auth/meli/actions';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,6 +24,7 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
   const { toast } = useToast();
   const [localConfig, setLocalConfig] = useState(appSettings);
   const [isFetching, startFetchingTransition] = useTransition();
+  const [isAuthPending, startAuthTransition] = useTransition();
   const [allGroups, setAllGroups] = useState<WhapiGroup[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -87,17 +89,23 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
   const filteredGroups = allGroups.filter(g => g.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const handleMeliAuth = () => {
-    if (!localConfig.meliAppId || !localConfig.meliClientSecret) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Por favor, preencha o App ID e o Client Secret do Mercado Livre.' });
-      return;
-    }
-    
-    sessionStorage.setItem('meli_app_id', localConfig.meliAppId);
-    sessionStorage.setItem('meli_client_secret', localConfig.meliClientSecret);
+    startAuthTransition(async () => {
+        if (!localConfig.meliAppId || !localConfig.meliClientSecret) {
+          toast({ variant: 'destructive', title: 'Erro', description: 'Por favor, preencha o App ID e o Client Secret do Mercado Livre.' });
+          return;
+        }
+        
+        sessionStorage.setItem('meli_app_id', localConfig.meliAppId);
+        sessionStorage.setItem('meli_client_secret', localConfig.meliClientSecret);
 
-    const redirectUri = `${window.location.origin}/auth/meli/callback`;
-    const authUrl = `https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=${localConfig.meliAppId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-    window.open(authUrl, '_blank');
+        const result = await generateMeliAuthUrlAction(localConfig.meliAppId);
+
+        if (result.success && result.authUrl) {
+            window.open(result.authUrl, '_blank');
+        } else {
+            toast({ variant: 'destructive', title: 'Erro de Autenticação', description: result.error || 'Não foi possível gerar a URL de autenticação.' });
+        }
+    });
   };
 
 
@@ -138,8 +146,8 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
                         placeholder="Seu Client Secret do Mercado Livre"
                     />
                 </div>
-                <Button type="button" onClick={handleMeliAuth} className="w-full">
-                    Autenticar com Mercado Livre
+                <Button type="button" onClick={handleMeliAuth} disabled={isAuthPending} className="w-full">
+                    {isAuthPending ? <Loader2 className="animate-spin" /> : 'Autenticar com Mercado Livre'}
                 </Button>
             </CardContent>
           </Card>
@@ -194,9 +202,22 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
                                 </div>
                             ))
                           ) : (
-                            <p className="text-sm text-muted-foreground p-2">
-                                Nenhum grupo. Clique em "Carregar grupos da API".
-                            </p>
+                             allGroups.length > 0 ? (
+                                allGroups.map(group => (
+                                <div key={group.id} className="flex items-center space-x-2 p-1">
+                                    <Checkbox 
+                                        id={group.id} 
+                                        checked={localConfig.whapiSelectedGroups.some(g => g.id === group.id)}
+                                        onCheckedChange={(checked) => handleGroupSelection(group, !!checked)}
+                                    />
+                                    <Label htmlFor={group.id} className="font-normal">{group.name}</Label>
+                                </div>
+                                ))
+                             ) : (
+                                <p className="text-sm text-muted-foreground p-2">
+                                    Nenhum grupo. Clique em "Carregar grupos da API".
+                                </p>
+                             )
                           )}
                       </ScrollArea>
                       <Button type="button" variant="outline" onClick={() => { setLocalConfig(p => ({...p, whapiSelectedGroups: []})); setAllGroups([]); setSearchTerm(''); }} className="w-full">
