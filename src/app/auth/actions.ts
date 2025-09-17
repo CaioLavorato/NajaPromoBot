@@ -2,6 +2,7 @@
 
 import { headers, cookies } from 'next/headers';
 import crypto from 'crypto';
+import { saveToken } from '@/lib/meli';
 
 // ------------- helpers -------------
 function b64url(buf: Buffer) {
@@ -112,9 +113,12 @@ export async function exchangeMeliCodeAction(code: string, passedClientId?: stri
       return { success: false, error: err || 'Falha ao trocar o código pelo token.', raw: data };
     }
 
-    // limpeza dos cookies efêmeros (opcional)
+    // limpeza dos cookies efêmeros
     cookies().set('meli_pkce_verifier', '', { path: '/', maxAge: 0 });
     cookies().set('meli_oauth_state', '', { path: '/', maxAge: 0 });
+
+    // Salva o token (access e refresh) no lado do servidor
+    await saveToken(data);
 
     return { success: true, accessToken: data.access_token, raw: data };
   } catch (error) {

@@ -1,0 +1,43 @@
+// app/api/gerar-links/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { getValidAccessToken } from '@/lib/meli';
+
+export async function POST(req: NextRequest) {
+  try {
+    const { urls, tag } = await req.json();
+    if (!Array.isArray(urls) || urls.length === 0) {
+      return NextResponse.json({ error: 'Nenhuma URL fornecida.' }, { status: 400 });
+    }
+
+    const token = await getValidAccessToken();
+
+    // A API espera um objeto com uma propriedade 'site' também.
+    // Opcional, mas recomendado pela documentação.
+    // Ex: "MLB" para Brasil.
+    const body: { urls: string[], tag?: string } = { urls };
+    if (tag) {
+        body.tag = tag;
+    }
+
+    const resp = await fetch('https://api.mercadolibre.com/affiliate-program/api/v2/affiliates/createLink', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      console.error("Erro da API ML ao gerar links:", data);
+      return NextResponse.json({ error: data.message || 'Erro ao gerar links' }, { status: resp.status });
+    }
+
+    return NextResponse.json({ success: true, links: data.urls });
+  } catch (err: any) {
+    console.error("Erro interno no endpoint /api/gerar-links:", err);
+    return NextResponse.json({ error: err.message || 'Erro interno do servidor' }, { status: 500 });
+  }
+}

@@ -28,12 +28,11 @@ export default function MeliCallbackPage() {
     }
 
     (async () => {
-      const result = await exchangeMeliCodeAction(code); // usa env para ID/SECRET
-      if (result.success && result.accessToken) {
+      const result = await exchangeMeliCodeAction(code);
+      if (result.success) {
         setStatus('success');
-        setMessage('Autenticação concluída com sucesso! Você já pode fechar esta aba.');
-        localStorage.setItem('meli_access_token', result.accessToken); // se quiser manter temporário no cliente
-        console.log('Token ML:', result.raw);
+        setMessage('Autenticação concluída com sucesso! O token foi salvo no servidor. Você pode fechar esta aba.');
+        // Não salvamos mais no localStorage, o servidor gerencia o token.
       } else {
         setStatus('error');
         setMessage(result.error || 'Ocorreu um erro desconhecido.');
