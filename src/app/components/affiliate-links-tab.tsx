@@ -13,7 +13,7 @@ import { downloadCSV, downloadXLSX } from '@/lib/export';
 import { generateHeadline } from '@/lib/headline-generator';
 import DataTable from './data-table';
 import PermalinkTools from './permalink-tools';
-import { Upload, Replace, Download } from 'lucide-react';
+import { Replace, Download } from 'lucide-react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 
@@ -33,7 +33,6 @@ export default function AffiliateLinksTab({ offers, setOffers }: AffiliateLinksT
   const sourceOffers = useLastSession ? offers : uploadedOffers;
 
   useEffect(() => {
-    // If user switches back to using session data, clear modified data if source is null
     if (useLastSession && !offers) {
       setModifiedOffers(null);
     }
@@ -59,7 +58,7 @@ export default function AffiliateLinksTab({ offers, setOffers }: AffiliateLinksT
           parsedOffers = XLSX.utils.sheet_to_json(worksheet) as Offer[];
         }
         setUploadedOffers(parsedOffers);
-        setModifiedOffers(null);
+        setModifiedOffers(null); // Reset modified offers when a new file is uploaded
         toast({ title: 'File loaded successfully', description: `Loaded ${parsedOffers.length} offers.` });
       } catch (error) {
         toast({ variant: 'destructive', title: 'File Read Error', description: 'Could not parse the uploaded file.' });
@@ -103,37 +102,47 @@ export default function AffiliateLinksTab({ offers, setOffers }: AffiliateLinksT
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Affiliate Link Replacement</CardTitle>
+        <CardTitle>Affiliate Link Tools</CardTitle>
         <CardDescription>
-          Use the scraped data or upload a file, then paste your affiliate links to replace the original permalinks.
+          Replace permalinks with your affiliate links and use tools to manage them.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex items-center space-x-2">
-          <Checkbox id="use-last-session" checked={useLastSession} onCheckedChange={(checked) => setUseLastSession(!!checked)} />
-          <Label htmlFor="use-last-session">Use data from Scrape tab</Label>
+        <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+            <Checkbox id="use-last-session" checked={useLastSession} onCheckedChange={(checked) => setUseLastSession(!!checked)} />
+            <Label htmlFor="use-last-session">Use data from Scrape tab</Label>
+            </div>
+
+            {!useLastSession && (
+            <div className="space-y-2">
+                <Label htmlFor="file-upload">Upload CSV/XLSX</Label>
+                <Input id="file-upload" type="file" accept=".csv, .xlsx" onChange={handleFileChange} />
+            </div>
+            )}
         </div>
 
-        {!useLastSession && (
-          <div className="space-y-2">
-            <Label htmlFor="file-upload">Upload CSV/XLSX</Label>
-            <Input id="file-upload" type="file" accept=".csv, .xlsx" onChange={handleFileChange} />
+        {displayOffers && displayOffers.length > 0 && (
+          <div className="grid md:grid-cols-2 gap-8">
+             <Card>
+                <CardHeader>
+                    <CardTitle>🔗 Affiliate Link Replacement</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="affiliate-links">Affiliate Links (one per line, in order)</Label>
+                        <Textarea id="affiliate-links" value={affiliateLinks} onChange={(e) => setAffiliateLinks(e.target.value)} rows={6} placeholder="https://..." />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Checkbox id="regenerate-headline" checked={regenerateHeadline} onCheckedChange={(checked) => setRegenerateHeadline(!!checked)} />
+                        <Label htmlFor="regenerate-headline">Generate/update headline by discount</Label>
+                    </div>
+                    <Button onClick={handleApply} className="w-full"><Replace /> Apply Replacement</Button>
+                </CardContent>
+             </Card>
+             <PermalinkTools offers={displayOffers} />
           </div>
         )}
-
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="affiliate-links">Affiliate Links (one per line, in order)</Label>
-            <Textarea id="affiliate-links" value={affiliateLinks} onChange={(e) => setAffiliateLinks(e.target.value)} rows={6} placeholder="https://..." />
-          </div>
-          <div className="space-y-4">
-             <div className="flex items-center space-x-2">
-              <Checkbox id="regenerate-headline" checked={regenerateHeadline} onCheckedChange={(checked) => setRegenerateHeadline(!!checked)} />
-              <Label htmlFor="regenerate-headline">Generate/update headline by discount</Label>
-            </div>
-            <Button onClick={handleApply} className="w-full"><Replace /> Apply Replacement</Button>
-          </div>
-        </div>
         
         {displayOffers && displayOffers.length > 0 && (
           <div className="space-y-8 pt-4">
@@ -144,9 +153,6 @@ export default function AffiliateLinksTab({ offers, setOffers }: AffiliateLinksT
                 <Button onClick={() => downloadCSV(displayOffers, 'offers_affiliate.csv')} variant="outline"><Download/> Download CSV</Button>
                 <Button onClick={() => downloadXLSX(displayOffers, 'offers_affiliate.xlsx')} variant="outline"><Download/> Download XLSX</Button>
               </div>
-            </section>
-            <section>
-              <PermalinkTools offers={displayOffers} />
             </section>
           </div>
         )}
