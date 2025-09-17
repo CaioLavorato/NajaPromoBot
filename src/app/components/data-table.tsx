@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import {
   Table,
@@ -40,7 +41,7 @@ export default function DataTable({ offers }: DataTableProps) {
         </TableHeader>
         <TableBody>
           {offers.map((offer, index) => (
-            <TableRow key={offer.id || index}>
+            <TableRow key={`${offer.id}-${index}`}>
               <TableCell>
                 {offer.image ? (
                   <Image
