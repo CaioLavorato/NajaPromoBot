@@ -95,8 +95,7 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
     sessionStorage.setItem('meli_app_id', localConfig.meliAppId);
     sessionStorage.setItem('meli_client_secret', localConfig.meliClientSecret);
 
-    const { protocol, hostname } = window.location;
-    const redirectUri = `${protocol}//${hostname}/auth/meli/callback`;
+    const redirectUri = `${window.location.origin}/auth/meli/callback`;
     const authUrl = `https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=${localConfig.meliAppId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
     window.open(authUrl, '_blank');
   };
