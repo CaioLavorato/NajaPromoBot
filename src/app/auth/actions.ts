@@ -6,7 +6,8 @@ import { headers } from 'next/headers';
 function getRedirectUri() {
   const headersList = headers();
   const host = headersList.get('x-forwarded-host') || headersList.get('host') || '';
-  const proto = headersList.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+  // Force HTTPS as it's required by Mercado Livre for public redirect URIs.
+  const proto = headersList.get('x-forwarded-proto') || 'https';
   
   const redirectUri = `${proto}://${host}/auth/callback`;
   return redirectUri;
@@ -18,7 +19,16 @@ export async function generateMeliAuthUrlAction(clientId: string): Promise<{ suc
   }
   try {
     const redirectUri = getRedirectUri();
-    const authUrl = `https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    
+    // Use URLSearchParams to handle encoding correctly.
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: redirectUri,
+    });
+
+    const authUrl = `https://auth.mercadolivre.com.br/authorization?${params.toString()}`;
+    
     return { success: true, authUrl };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro interno no servidor.';
