@@ -6,7 +6,7 @@ import { headers } from 'next/headers';
 function getRedirectUri() {
   const headersList = headers();
   const host = headersList.get('x-forwarded-host') || headersList.get('host') || '';
-  let proto = headersList.get('x-forwarded-proto') || 'http';
+  let proto = 'http';
   
   if (headersList.get('x-forwarded-proto')) {
     proto = 'https';
