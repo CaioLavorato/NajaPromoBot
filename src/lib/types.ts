@@ -15,9 +15,11 @@ export type WhapiGroup = {
   name: string;
 }
 
-export type WhapiConfig = {
-  token: string;
-  selectedGroups: WhapiGroup[];
-  interval: number;
-  sendLimit: number;
+export type AppSettings = {
+  whapiToken: string;
+  whapiSelectedGroups: WhapiGroup[];
+  whapiInterval: number;
+  whapiSendLimit: number;
+  meliAppId: string;
+  meliClientSecret: string;
 };

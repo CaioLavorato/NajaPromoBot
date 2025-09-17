@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertCircle, Wand2, Trash2, Download, Send, Replace } from 'lucide-react';
 
-import type { Offer, WhapiConfig } from '@/lib/types';
+import type { Offer, AppSettings } from '@/lib/types';
 import { scrapeOffersAction } from '@/app/actions/scrape';
 import { sendToWhatsAppAction } from '@/app/actions/whatsapp';
 import { useToast } from '@/hooks/use-toast';
@@ -23,7 +23,7 @@ import { generateHeadline } from '@/lib/headline-generator';
 type ScrapeTabProps = {
   offers: Offer[] | null;
   setOffers: (offers: Offer[] | null) => void;
-  whapiConfig: WhapiConfig;
+  appSettings: AppSettings;
 };
 
 const DEFAULT_URLS = [
@@ -41,7 +41,7 @@ function SubmitButton() {
   );
 }
 
-export default function ScrapeTab({ offers, setOffers, whapiConfig }: ScrapeTabProps) {
+export default function ScrapeTab({ offers, setOffers, appSettings }: ScrapeTabProps) {
   const { toast } = useToast();
   const [scrapeState, formAction] = useActionState(scrapeOffersAction, { data: null });
   const [isWhatsAppPending, startWhatsAppTransition] = useTransition();
@@ -57,7 +57,7 @@ export default function ScrapeTab({ offers, setOffers, whapiConfig }: ScrapeTabP
       toast({ title: 'Extração Concluída', description: scrapeState.message });
     }
     if (scrapeState?.error) {
-      toast({ variant: 'destructive', title: 'Falha na Extração', description: scrapelelele.error });
+      toast({ variant: 'destructive', title: 'Falha na Extração', description: scrapeState.error });
     }
   }, [scrapeState, setOffers, toast]);
   
@@ -94,14 +94,14 @@ export default function ScrapeTab({ offers, setOffers, whapiConfig }: ScrapeTabP
       toast({ variant: 'destructive', title: 'Nenhuma oferta para enviar' });
       return;
     }
-     if (!whapiConfig.token || whapiConfig.selectedGroups.length === 0) {
+     if (!appSettings.whapiToken || appSettings.whapiSelectedGroups.length === 0) {
       toast({ variant: 'destructive', title: 'WhatsApp Não Configurado', description: 'Por favor, configure seu Token e selecione ao menos um grupo na aba de Configurações.'});
       return;
     }
 
     const formData = new FormData();
-    formData.append('whapiToken', whapiConfig.token);
-    formData.append('whapiGroupIds', JSON.stringify(whapiConfig.selectedGroups.map(g => g.id)));
+    formData.append('whapiToken', appSettings.whapiToken);
+    formData.append('whapiGroupIds', JSON.stringify(appSettings.whapiSelectedGroups.map(g => g.id)));
 
     startWhatsAppTransition(async () => {
       const result = await sendToWhatsAppAction(offers, formData);

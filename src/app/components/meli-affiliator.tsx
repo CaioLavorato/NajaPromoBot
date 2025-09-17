@@ -6,15 +6,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ScrapeTab from '@/app/components/scrape-tab';
 import SettingsTab from '@/app/components/settings-tab';
 import { Bot, Settings } from 'lucide-react';
-import type { WhapiConfig } from '@/lib/types';
+import type { AppSettings } from '@/lib/types';
 
 export default function MeliAffiliator() {
   const [offers, setOffers] = useState<Offer[] | null>(null);
-  const [whapiConfig, setWhapiConfig] = useState<WhapiConfig>({ 
-    token: '',
-    selectedGroups: [],
-    interval: 25,
-    sendLimit: 5
+  const [appSettings, setAppSettings] = useState<AppSettings>({ 
+    whapiToken: '',
+    whapiSelectedGroups: [],
+    whapiInterval: 25,
+    whapiSendLimit: 5,
+    meliAppId: '',
+    meliClientSecret: '',
   });
 
   return (
@@ -30,10 +32,10 @@ export default function MeliAffiliator() {
         </TabsTrigger>
       </TabsList>
       <TabsContent value="scraper">
-        <ScrapeTab offers={offers} setOffers={setOffers} whapiConfig={whapiConfig} />
+        <ScrapeTab offers={offers} setOffers={setOffers} appSettings={appSettings} />
       </TabsContent>
       <TabsContent value="settings">
-        <SettingsTab whapiConfig={whapiConfig} setWhapiConfig={setWhapiConfig} />
+        <SettingsTab appSettings={appSettings} setAppSettings={setAppSettings} />
       </TabsContent>
     </Tabs>
   );
