@@ -6,7 +6,7 @@ import { headers } from 'next/headers';
 function getRedirectUri() {
   const host = headers().get('host') || '';
   const proto = headers().get('x-forwarded-proto') || 'http';
-  const redirectUri = `${proto}://${host}/auth/meli/callback`;
+  const redirectUri = `${proto}://${host}/auth/callback`;
   return redirectUri;
 }
 

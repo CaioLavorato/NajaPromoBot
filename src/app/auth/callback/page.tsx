@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, ServerCrash, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { exchangeMeliCodeAction } from '@/app/auth/meli/actions';
+import { exchangeMeliCodeAction } from '@/app/auth/actions';
 
 export default function MeliCallbackPage() {
   const searchParams = useSearchParams();
