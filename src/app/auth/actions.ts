@@ -6,7 +6,12 @@ import { headers } from 'next/headers';
 function getRedirectUri() {
   const headersList = headers();
   const host = headersList.get('x-forwarded-host') || headersList.get('host') || '';
-  const proto = headersList.get('x-forwarded-proto') || 'http';
+  let proto = headersList.get('x-forwarded-proto') || 'http';
+  
+  if (headersList.get('x-forwarded-proto')) {
+    proto = 'https';
+  }
+  
   const redirectUri = `${proto}://${host}/auth/callback`;
   return redirectUri;
 }
