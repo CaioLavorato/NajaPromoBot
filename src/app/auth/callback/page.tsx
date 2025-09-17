@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -22,42 +21,25 @@ export default function MeliCallbackPage() {
       setMessage(`Erro na autenticação: ${searchParams.get('error_description') || error}`);
       return;
     }
-
     if (!code) {
       setStatus('error');
       setMessage('Código de autorização não encontrado.');
       return;
     }
 
-    const performTokenExchange = async () => {
-      const meliAppId = sessionStorage.getItem('meli_app_id');
-      const meliClientSecret = sessionStorage.getItem('meli_client_secret');
-
-      if (!meliAppId || !meliClientSecret) {
-        setStatus('error');
-        setMessage('App ID ou Client Secret não encontrado. Por favor, tente autenticar novamente a partir da página de configurações.');
-        return;
-      }
-      
-      const result = await exchangeMeliCodeAction(code, meliAppId, meliClientSecret);
-
+    (async () => {
+      const result = await exchangeMeliCodeAction(code); // usa env para ID/SECRET
       if (result.success && result.accessToken) {
         setStatus('success');
-        setMessage('Autenticação com Mercado Livre concluída com sucesso! Você já pode fechar esta aba.');
-        // Salva o token de acesso no localStorage para uso futuro.
-        localStorage.setItem('meli_access_token', result.accessToken); 
-        console.log('Token de Acesso salvo:', result.accessToken);
+        setMessage('Autenticação concluída com sucesso! Você já pode fechar esta aba.');
+        localStorage.setItem('meli_access_token', result.accessToken); // se quiser manter temporário no cliente
+        console.log('Token ML:', result.raw);
       } else {
         setStatus('error');
         setMessage(result.error || 'Ocorreu um erro desconhecido.');
+        console.error('Detalhes:', result.raw);
       }
-      
-      sessionStorage.removeItem('meli_app_id');
-      sessionStorage.removeItem('meli_client_secret');
-    };
-
-    performTokenExchange();
-
+    })();
   }, [searchParams]);
 
   const renderContent = () => {

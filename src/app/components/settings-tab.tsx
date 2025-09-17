@@ -90,15 +90,8 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
 
   const handleMeliAuth = () => {
     startAuthTransition(async () => {
-        if (!localConfig.meliAppId || !localConfig.meliClientSecret) {
-          toast({ variant: 'destructive', title: 'Erro', description: 'Por favor, preencha o App ID e o Client Secret do Mercado Livre.' });
-          return;
-        }
-        
-        sessionStorage.setItem('meli_app_id', localConfig.meliAppId);
-        sessionStorage.setItem('meli_client_secret', localConfig.meliClientSecret);
-
-        const result = await generateMeliAuthUrlAction(localConfig.meliAppId);
+        // Não é mais necessário passar ID/Secret do cliente, pois são lidos do .env
+        const result = await generateMeliAuthUrlAction();
 
         if (result.success && result.authUrl) {
             window.open(result.authUrl, '_blank');
@@ -115,37 +108,16 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
         <CardHeader>
           <CardTitle>Configurações Gerais</CardTitle>
           <CardDescription>
-            Gerencie suas configurações de integração e envio aqui.
+            Gerencie suas configurações de integração e envio aqui. As credenciais do Mercado Livre são gerenciadas por variáveis de ambiente.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <Card>
             <CardHeader>
                 <CardTitle>🚀 Integração com Mercado Livre</CardTitle>
-                <CardDescription>Configure suas credenciais de afiliado do Mercado Livre.</CardDescription>
+                <CardDescription>Use o botão abaixo para autenticar sua conta com o Mercado Livre. As credenciais (Client ID, Secret) devem ser configuradas no arquivo .env.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="meliAppId">App ID</Label>
-                    <Input
-                        id="meliAppId"
-                        name="meliAppId"
-                        value={localConfig.meliAppId}
-                        onChange={handleInputChange}
-                        placeholder="Seu App ID do Mercado Livre"
-                    />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="meliClientSecret">Client Secret</Label>
-                    <Input
-                        id="meliClientSecret"
-                        name="meliClientSecret"
-                        type="password"
-                        value={localConfig.meliClientSecret}
-                        onChange={handleInputChange}
-                        placeholder="Seu Client Secret do Mercado Livre"
-                    />
-                </div>
+            <CardContent>
                 <Button type="button" onClick={handleMeliAuth} disabled={isAuthPending} className="w-full">
                     {isAuthPending ? <Loader2 className="animate-spin" /> : 'Autenticar com Mercado Livre'}
                 </Button>
