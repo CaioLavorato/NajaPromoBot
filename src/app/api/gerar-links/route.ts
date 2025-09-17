@@ -11,9 +11,6 @@ export async function POST(req: NextRequest) {
 
     const token = await getValidAccessToken();
 
-    // A API espera um objeto com uma propriedade 'site' também.
-    // Opcional, mas recomendado pela documentação.
-    // Ex: "MLB" para Brasil.
     const body: { urls: string[], tag?: string } = { urls };
     if (tag) {
         body.tag = tag;

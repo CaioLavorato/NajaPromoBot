@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Wand2, Trash2, Download, Send, Replace } from 'lucide-react';
+import { Loader2, AlertCircle, Wand2, Trash2, Download, Send, Replace, Link as LinkIcon } from 'lucide-react';
 
 import type { Offer, AppSettings } from '@/lib/types';
 import { scrapeOffersAction } from '@/app/actions/scrape';
@@ -45,9 +45,10 @@ export default function ScrapeTab({ offers, setOffers, appSettings }: ScrapeTabP
   const { toast } = useToast();
   const [scrapeState, formAction] = useActionState(scrapeOffersAction, { data: null });
   const [isWhatsAppPending, startWhatsAppTransition] = useTransition();
+  const [isGeneratingLinks, startGeneratingLinksTransition] = useTransition();
   
-  const [affiliateLinks, setAffiliateLinks] = useState('');
   const [regenerateHeadline, setRegenerateHeadline] = useState(true);
+  const [affiliateTag, setAffiliateTag] = useState('');
 
   useEffect(() => {
     if (scrapeState?.data) {
@@ -61,30 +62,50 @@ export default function ScrapeTab({ offers, setOffers, appSettings }: ScrapeTabP
     }
   }, [scrapeState, setOffers, toast]);
   
-  const handleApplyAffiliateLinks = () => {
-    if (!offers) {
-      toast({ variant: 'destructive', title: 'Nenhum Dado de Origem', description: 'Por favor, extraia ofertas primeiro.' });
+  const handleGenerateAffiliateLinks = () => {
+    if (!offers || offers.length === 0) {
+      toast({ variant: 'destructive', title: 'Nenhuma oferta', description: 'Por favor, extraia ofertas primeiro.' });
       return;
     }
-    const links = affiliateLinks.split('\n').filter(l => l.trim() !== '');
-    if (links.length === 0) {
-      toast({ variant: 'destructive', title: 'Nenhum Link de Afiliado', description: 'Por favor, cole pelo menos um link de afiliado.' });
-      return;
-    }
+    
+    startGeneratingLinksTransition(async () => {
+      try {
+        const originalUrls = offers.map(o => o.permalink);
+        
+        const response = await fetch('/api/gerar-links', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ urls: originalUrls, tag: affiliateTag || undefined }),
+        });
 
-    const newOffers = offers.map((offer, index) => {
-      let newOffer = { ...offer };
-      if (index < links.length) {
-        newOffer.permalink = links[index];
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'Falha ao gerar links de afiliado.');
+        }
+        
+        const newLinksMap = new Map(result.links.map((item: { short_url: string; original_url: string }) => [item.original_url, item.short_url]));
+        
+        const newOffers = offers.map(offer => {
+            const newLink = newLinksMap.get(offer.permalink);
+            let newOffer = { ...offer };
+            if (newLink) {
+                newOffer.permalink = newLink;
+            }
+            if (regenerateHeadline) {
+                newOffer.headline = generateHeadline(newOffer.title, newOffer.price_from, newOffer.price);
+            }
+            return newOffer;
+        });
+
+        setOffers(newOffers);
+        toast({ title: 'Sucesso', description: `${newLinksMap.size} links de afiliado foram gerados e aplicados.` });
+
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
+        toast({ variant: 'destructive', title: 'Erro ao Gerar Links', description: message });
       }
-      if (regenerateHeadline) {
-        newOffer.headline = generateHeadline(newOffer.title, newOffer.price_from, newOffer.price);
-      }
-      return newOffer;
     });
-
-    setOffers(newOffers);
-    toast({ title: 'Sucesso', description: `Substituídos ${Math.min(links.length, newOffers.length)} permalinks.` });
   };
 
 
@@ -169,18 +190,24 @@ export default function ScrapeTab({ offers, setOffers, appSettings }: ScrapeTabP
             <section className="grid md:grid-cols-2 gap-8">
                <Card>
                   <CardHeader>
-                      <CardTitle>🔗 Substituição de Links de Afiliado</CardTitle>
+                      <CardTitle>🔗 Geração de Links de Afiliado</CardTitle>
+                      <CardDescription>
+                        Gere links de afiliado para as ofertas extraídas usando a API do Mercado Livre.
+                      </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                       <div className="space-y-2">
-                          <Label htmlFor="affiliate-links">Links de Afiliado (um por linha, em ordem)</Label>
-                          <Textarea id="affiliate-links" value={affiliateLinks} onChange={(e) => setAffiliateLinks(e.target.value)} rows={6} placeholder="https://..." />
+                          <Label htmlFor="affiliate-tag">Tag de Afiliado (Opcional)</Label>
+                          <Input id="affiliate-tag" value={affiliateTag} onChange={(e) => setAffiliateTag(e.target.value)} placeholder="Ex: meu-site-123" />
                       </div>
                       <div className="flex items-center space-x-2">
                           <Checkbox id="regenerate-headline" checked={regenerateHeadline} onCheckedChange={(checked) => setRegenerateHeadline(!!checked)} />
                           <Label htmlFor="regenerate-headline">Gerar/atualizar chamada por desconto</Label>
                       </div>
-                      <Button onClick={handleApplyAffiliateLinks} className="w-full"><Replace /> Aplicar Substituição</Button>
+                      <Button onClick={handleGenerateAffiliateLinks} disabled={isGeneratingLinks} className="w-full">
+                        {isGeneratingLinks ? <Loader2 className="animate-spin" /> : <LinkIcon />}
+                        Gerar Links de Afiliado
+                      </Button>
                   </CardContent>
                </Card>
                <PermalinkTools offers={offers} />
