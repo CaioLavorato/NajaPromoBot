@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Save, Loader2, Trash2 } from 'lucide-react';
 import type { AppSettings, WhapiGroup } from '@/lib/types';
 import { getWhapiGroupsAction } from '@/app/actions/whatsapp';
-import { generateMeliAuthUrlAction } from '@/app/auth/meli/actions';
+import { generateMeliAuthUrlAction } from '@/app/auth/actions';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
