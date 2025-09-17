@@ -4,8 +4,9 @@
 import { headers } from 'next/headers';
 
 function getRedirectUri() {
-  const host = headers().get('host') || '';
-  const proto = headers().get('x-forwarded-proto') || 'http';
+  const headersList = headers();
+  const host = headersList.get('x-forwarded-host') || headersList.get('host') || '';
+  const proto = headersList.get('x-forwarded-proto') || 'http';
   const redirectUri = `${proto}://${host}/auth/callback`;
   return redirectUri;
 }
