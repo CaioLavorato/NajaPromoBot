@@ -20,6 +20,4 @@ export type AppSettings = {
   whapiSelectedGroups: WhapiGroup[];
   whapiInterval: number;
   whapiSendLimit: number;
-  meliAppId: string;
-  meliClientSecret: string;
 };

@@ -15,8 +15,6 @@ export default function MeliAffiliator() {
     whapiSelectedGroups: [],
     whapiInterval: 25,
     whapiSendLimit: 5,
-    meliAppId: '',
-    meliClientSecret: '',
   });
 
   return (

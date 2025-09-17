@@ -90,7 +90,6 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
 
   const handleMeliAuth = () => {
     startAuthTransition(async () => {
-        // Não é mais necessário passar ID/Secret do cliente, pois são lidos do .env
         const result = await generateMeliAuthUrlAction();
 
         if (result.success && result.authUrl) {
@@ -115,7 +114,7 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
           <Card>
             <CardHeader>
                 <CardTitle>🚀 Integração com Mercado Livre</CardTitle>
-                <CardDescription>Use o botão abaixo para autenticar sua conta com o Mercado Livre. As credenciais (Client ID, Secret) devem ser configuradas no arquivo .env.</CardDescription>
+                <CardDescription>Use o botão abaixo para autenticar sua conta com o Mercado Livre. As credenciais (Client ID, Secret e a URL pública) devem ser configuradas no arquivo .env.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Button type="button" onClick={handleMeliAuth} disabled={isAuthPending} className="w-full">
