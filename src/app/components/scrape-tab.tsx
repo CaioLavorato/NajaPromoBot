@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useTransition } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect, useState, useTransition, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,7 +41,7 @@ function SubmitButton() {
 
 export default function ScrapeTab({ offers, setOffers }: ScrapeTabProps) {
   const { toast } = useToast();
-  const [scrapeState, formAction] = useFormState(scrapeOffersAction, { data: null });
+  const [scrapeState, formAction] = useActionState(scrapeOffersAction, { data: null });
   const [isWhatsAppPending, startWhatsAppTransition] = useTransition();
 
   useEffect(() => {
