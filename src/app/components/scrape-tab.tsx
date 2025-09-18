@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Wand2, Trash2, Download, Send, Replace, Link as LinkIcon, ClipboardPaste } from 'lucide-react';
+import { Loader2, AlertCircle, Wand2, Trash2, Download, Send, Replace, Link as LinkIcon, ClipboardPaste, PlusCircle } from 'lucide-react';
 
 import type { Offer, AppSettings } from '@/lib/types';
 import { scrapeOffersAction } from '@/app/actions/scrape';
@@ -160,6 +160,34 @@ export default function ScrapeTab({ offers, setOffers, appSettings }: ScrapeTabP
     });
   };
 
+  const handleAddOffer = () => {
+    const newOffer: Offer = {
+      id: `manual-${new Date().getTime()}`,
+      headline: '',
+      title: '',
+      price_from: '',
+      price: null,
+      coupon: '',
+      permalink: '',
+      image: '',
+      editing: true, // Start in editing mode
+    };
+    setOffers(offers ? [newOffer, ...offers] : [newOffer]);
+  };
+
+  const handleDeleteOffer = (index: number) => {
+    setOffers(offers ? offers.filter((_, i) => i !== index) : null);
+  };
+
+  const handleUpdateOffer = (index: number, updatedOffer: Offer) => {
+    if (offers) {
+      const newOffers = [...offers];
+      newOffers[index] = updatedOffer;
+      setOffers(newOffers);
+    }
+  };
+
+
   return (
     <Card>
       <CardHeader>
@@ -270,8 +298,17 @@ export default function ScrapeTab({ offers, setOffers, appSettings }: ScrapeTabP
             </section>
         
           <section>
-            <h3 className='font-headline text-2xl font-semibold mb-4'>Ofertas Extraídas ({offers.length})</h3>
-            <DataTable offers={offers} />
+            <div className="flex justify-between items-center mb-4">
+                <h3 className='font-headline text-2xl font-semibold'>Ofertas Extraídas ({offers.length})</h3>
+                 <Button onClick={handleAddOffer} variant="outline">
+                    <PlusCircle /> Adicionar Linha
+                </Button>
+            </div>
+            <DataTable 
+                offers={offers} 
+                onUpdateOffer={handleUpdateOffer}
+                onDeleteOffer={handleDeleteOffer}
+            />
             <div className="flex gap-2 mt-4">
               <Button onClick={() => downloadCSV(offers, 'ofertas.csv')} variant="outline"><Download/> Baixar CSV</Button>
               <Button onClick={() => downloadXLSX(offers, 'ofertas.xlsx')} variant="outline"><Download/> Baixar XLSX</Button>
@@ -306,7 +343,3 @@ export default function ScrapeTab({ offers, setOffers, appSettings }: ScrapeTabP
     </Card>
   );
 }
-
-    
-
-    

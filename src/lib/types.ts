@@ -8,6 +8,7 @@ export type Offer = {
   permalink: string;
   image: string;
   discount_pct?: number;
+  editing?: boolean;
 };
 
 export type WhapiGroup = {
