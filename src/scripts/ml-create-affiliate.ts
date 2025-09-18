@@ -47,7 +47,7 @@ export async function createAffiliateLinksWithBrowser(urls: string[], tag: strin
         ignoreHTTPSErrors: true,
       }
     : {
-        headless: true, // troque para false na 1ª execução para logar
+        headless: false, // Em modo local, inicia visível para facilitar o primeiro login
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -93,7 +93,7 @@ export async function createAffiliateLinksWithBrowser(urls: string[], tag: strin
       if (!csrfCookie) {
         // persiste o estado atual para inspeção
         await saveCookies(cookies);
-        return { status: 401, raw: 'Sessão não encontrada (_csrf ausente). Abra com headless:false, faça login uma vez; cookies serão persistidos.' };
+        return { status: 401, raw: 'Sessão não encontrada (_csrf ausente). Faça o login na janela do navegador que abriu.' };
       }
     }
 
