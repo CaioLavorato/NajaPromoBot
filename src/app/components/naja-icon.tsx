@@ -14,14 +14,15 @@ export const NajaIcon = React.forwardRef<
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={cn("lucide lucide-cobra", className)}
+        className={cn("lucide lucide-cobra-aggressive", className)}
         {...props}
     >
-        <path d="M10.5 12.5a3.5 3.5 0 1 1-7 0c0-5 3.5-5 3.5-5s3.5 0 3.5 5Z"/>
-        <path d="M17.5 12.5a3.5 3.5 0 1 1-7 0c0-5 3.5-5 3.5-5s3.5 0 3.5 5Z"/>
-        <path d="M14 7.5s-1-2-2.5-2-2.5 2-2.5 2"/>
-        <path d="M7 18.5c-1.5 0-2.5-1.5-2.5-3.5 0-2.5 1-4.5 3-4.5"/>
-        <path d="M17 18.5c1.5 0 2.5-1.5 2.5-3.5 0-2.5-1-4.5-3-4.5"/>
+        <path d="M14.2 8.3c-1-2.9-3.4-5-6.2-5.3-2.8-.3-5.5 1.2-6.5 3.9-.3.8-.4 1.7-.2 2.6.4 1.7 1.6 3.1 3.2 3.8"/>
+        <path d="M9.8 15.7c1 2.9 3.4 5 6.2 5.3 2.8.3 5.5-1.2 6.5-3.9.3-.8.4-1.7.2-2.6-.4-1.7-1.6-3.1-3.2-3.8"/>
+        <path d="M15.5 13.5c1-1 2-2.5 2-4.5"/>
+        <path d="M8.5 10.5c-1 1-2 2.5-2 4.5"/>
+        <path d="m12 12 1-1"/>
+        <path d="m11 13-1-1"/>
     </svg>
 ));
 NajaIcon.displayName = "NajaIcon";
