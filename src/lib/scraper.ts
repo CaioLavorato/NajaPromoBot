@@ -1,3 +1,4 @@
+
 import * as cheerio from 'cheerio';
 import type { Offer } from './types';
 
@@ -54,11 +55,13 @@ export function normalizePermalink(u: string): string {
     let url = new URL(u);
     const originalHash = url.hash;
 
-    // Se for um link de rastreamento, extrai a URL real do parâmetro 'url'
-    if (url.hostname.includes('click.mercadolivre.com.br')) {
+    // Lida com múltiplos redirecionamentos de clique aninhados
+    while (url.hostname.includes('click.mercadolivre.com.br') && url.searchParams.has('url')) {
       const realUrl = url.searchParams.get('url');
       if (realUrl) {
         url = new URL(realUrl);
+      } else {
+        break; // Sai do loop se não houver mais url aninhada
       }
     }
     
@@ -69,7 +72,10 @@ export function normalizePermalink(u: string): string {
       }
     }
     url.search = params.toString();
-    url.hash = originalHash; // Preserva o fragmento original (#)
+    
+    // O hash original pode conter informações de rastreamento, mas também de variantes
+    // Se o novo hash estiver vazio, usa o hash original, senão usa o da URL extraída
+    url.hash = url.hash || originalHash;
 
     return url.href;
   } catch {
