@@ -9,6 +9,7 @@ export type Offer = {
   image: string;
   discount_pct?: number;
   editing?: boolean;
+  advertiser_name?: string; // Para Awin, Amazon, Shopee
 };
 
 export type WhapiGroup = {

@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertCircle, Search, Send, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { AppSettings, ShopeeProduct } from '@/lib/types';
-import { searchShopeeAction, sendShopeeToWhatsAppAction } from '@/app/actions/shopee';
+import type { AppSettings, ShopeeProduct, Offer } from '@/lib/types';
+import { searchShopeeAction } from '@/app/actions/shopee';
+import { sendToWhatsAppAction } from '@/app/actions/whatsapp';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -69,14 +70,37 @@ export default function ShopeeTab({ appSettings }: ShopeeTabProps) {
     }
   });
   
-  const handleSendToWhatsApp = async () => {
+  const handleSendToWhatsApp = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
     if (products.length === 0) {
       toast({ variant: 'destructive', title: 'Nenhum produto para enviar' });
       return;
     }
+     if (!appSettings.whapiToken || appSettings.whapiSelectedGroups.length === 0) {
+      toast({ variant: 'destructive', title: 'WhatsApp Não Configurado', description: 'Por favor, configure seu Token e selecione ao menos um grupo na aba de Configurações.'});
+      return;
+    }
+
+    const offers: Offer[] = products.map(p => ({
+        id: String(p.item_id),
+        headline: '',
+        title: p.item_name,
+        price: p.price_info.current_price,
+        price_from: p.price_info.original_price,
+        coupon: '',
+        permalink: p.affiliate_link,
+        image: p.image_url,
+        discount_pct: Math.round(p.price_info.discount_rate * 100),
+        advertiser_name: 'Shopee',
+    }));
+
+    const formData = new FormData();
+    formData.append('whapiToken', appSettings.whapiToken);
+    formData.append('whapiGroupIds', JSON.stringify(appSettings.whapiSelectedGroups.map(g => g.id)));
     
     startWhatsAppTransition(async () => {
-      const result = await sendShopeeToWhatsAppAction(products, appSettings);
+      const result = await sendToWhatsAppAction(offers, formData);
       if (result.success) {
         toast({ title: 'Sucesso', description: result.message });
       } else {
@@ -186,7 +210,7 @@ export default function ShopeeTab({ appSettings }: ShopeeTabProps) {
                     <CardTitle>📱 Enviar para o WhatsApp</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={(e) => { e.preventDefault(); handleSendToWhatsApp(); }}>
+                    <form onSubmit={handleSendToWhatsApp}>
                          <WhatsAppSubmitButton />
                     </form>
                 </CardContent>

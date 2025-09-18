@@ -4,6 +4,7 @@ import { controlPostFrequency } from '@/ai/flows/control-post-frequency-to-whats
 import { summarizeOffersForWhatsApp } from '@/ai/flows/summarize-offers-for-whatsapp';
 import type { Offer, WhapiGroup } from '@/lib/types';
 import { z } from 'zod';
+import { generateHeadline as localGenerateHeadline } from '@/lib/headline-generator';
 
 const WhatsAppActionSchema = z.object({
   whapiGroupIds: z.string().min(1, 'Pelo menos um ID de grupo é obrigatório.'),
@@ -54,13 +55,14 @@ export async function sendToWhatsAppAction(
 
     const offersToSummarize = offers.map(o => ({
       id: o.id,
-      headline: o.headline,
+      headline: o.headline || localGenerateHeadline(o.title, o.price_from, o.price),
       title: o.title,
       price: o.price ?? 0,
       price_from: String(o.price_from),
       coupon: o.coupon,
       permalink: o.permalink,
-      image: o.image
+      image: o.image,
+      advertiser_name: (o as any).advertiser_name,
     }));
 
     // TODO: Implement logic to send to multiple groups with interval and limit

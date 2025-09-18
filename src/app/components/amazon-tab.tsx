@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertCircle, Search, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { AppSettings, AmazonProduct } from '@/lib/types';
-import { searchAmazonAction, sendAmazonToWhatsAppAction } from '@/app/actions/amazon';
+import type { AppSettings, AmazonProduct, Offer } from '@/lib/types';
+import { searchAmazonAction } from '@/app/actions/amazon';
+import { sendToWhatsAppAction } from '@/app/actions/whatsapp';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -76,14 +77,36 @@ export default function AmazonTab({ appSettings }: AmazonTabProps) {
     }
   });
   
-  const handleSendToWhatsApp = async (formData: FormData) => {
+  const handleSendToWhatsApp = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (products.length === 0) {
       toast({ variant: 'destructive', title: 'Nenhum produto para enviar' });
       return;
     }
+     if (!appSettings.whapiToken || appSettings.whapiSelectedGroups.length === 0) {
+      toast({ variant: 'destructive', title: 'WhatsApp Não Configurado', description: 'Por favor, configure seu Token e selecione ao menos um grupo na aba de Configurações.'});
+      return;
+    }
+
+    const offers: Offer[] = products.map(p => ({
+        id: p.ASIN,
+        headline: '',
+        title: p.ItemInfo.Title.DisplayValue,
+        price: p.Offers?.Listings[0]?.Price?.Amount ?? null,
+        price_from: p.Offers?.Listings[0]?.Saving?.DisplayAmount ? (p.Offers.Listings[0].Price.Amount / (1 - (p.Offers.Listings[0].Saving.Percentage / 100))) : '',
+        coupon: '',
+        permalink: p.DetailPageURL,
+        image: p.Images.Primary.Large.URL,
+        discount_pct: p.Offers?.Listings[0]?.Saving?.Percentage,
+        advertiser_name: 'Amazon',
+    }));
+
+    const formData = new FormData();
+    formData.append('whapiToken', appSettings.whapiToken);
+    formData.append('whapiGroupIds', JSON.stringify(appSettings.whapiSelectedGroups.map(g => g.id)));
     
     startWhatsAppTransition(async () => {
-      const result = await sendAmazonToWhatsAppAction(products, appSettings);
+      const result = await sendToWhatsAppAction(offers, formData);
       if (result.success) {
         toast({ title: 'Sucesso', description: result.message });
       } else {
@@ -185,7 +208,7 @@ export default function AmazonTab({ appSettings }: AmazonTabProps) {
                     <CardTitle>📱 Enviar para o WhatsApp</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <form action={handleSendToWhatsApp}>
+                    <form onSubmit={handleSendToWhatsApp}>
                          <WhatsAppSubmitButton />
                     </form>
                 </CardContent>

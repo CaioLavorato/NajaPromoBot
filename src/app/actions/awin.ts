@@ -110,7 +110,7 @@ export async function sendAwinToWhatsAppAction(
   
   const offersToSend: Offer[] = offers.map(o => ({
       ...o,
-      title: `[${o.advertiser_name}] ${o.title}`, // Add advertiser name to title
+      advertiser_name: o.advertiser_name,
   }));
 
   const formData = new FormData();
