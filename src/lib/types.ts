@@ -23,6 +23,8 @@ export type AppSettings = {
   amazonPartnerTag: string;
   amazonAccessKey: string;
   amazonSecretKey: string;
+  shopeeAppId?: string;
+  shopeeAppKey?: string;
 };
 
 export type AmazonProduct = {
@@ -55,4 +57,18 @@ export type AmazonProduct = {
       };
     }[];
   };
+};
+
+export type ShopeeProduct = {
+  item_id: number;
+  shop_id: number;
+  item_name: string;
+  image_url: string;
+  price_info: {
+    original_price: number;
+    current_price: number;
+    discount_rate: number;
+  };
+  commission_rate: number;
+  affiliate_link: string;
 };

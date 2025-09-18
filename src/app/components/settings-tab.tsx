@@ -111,6 +111,22 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+            <Card>
+              <CardHeader>
+                  <CardTitle>🛍️ Integração com Shopee</CardTitle>
+                  <CardDescription>Configure suas credenciais da API de Afiliados da Shopee.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="shopeeAppId">Shopee App ID</Label>
+                      <Input id="shopeeAppId" name="shopeeAppId" value={localConfig.shopeeAppId} onChange={handleInputChange} placeholder="Seu App ID da Shopee" />
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="shopeeAppKey">Shopee App Key</Label>
+                      <Input id="shopeeAppKey" name="shopeeAppKey" type="password" value={localConfig.shopeeAppKey} onChange={handleInputChange} placeholder="Sua App Key da Shopee" />
+                  </div>
+              </CardContent>
+            </Card>
            <Card>
               <CardHeader>
                   <CardTitle>🛒 Integração com Amazon</CardTitle>
