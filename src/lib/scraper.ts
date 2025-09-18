@@ -44,35 +44,41 @@ function cleanNum(s: string | null | undefined): number | null {
 }
 
 const LISTING_PARAMS_DROP = new Set([
-  'searchVariation', 'position', 'search_layout', 'deal_print_id', 'tracking_id',
-  'reco_backend', 'reco_client', 'reco_item_pos', 'reco_backend_type', 'reco_id',
-  'c_id', 'c_uid', 'source', 'is_advertising', 'wid', 'sid', 'polycard_client',
+  'searchVariation','position','search_layout','deal_print_id','tracking_id',
+  'reco_backend','reco_client','reco_item_pos','reco_backend_type','reco_id',
+  'c_id','c_uid','source','is_advertising','wid','sid','polycard_client',
+  'lm','src','spm'
 ]);
+
+function shouldStripParam(key: string): boolean {
+  if (LISTING_PARAMS_DROP.has(key)) return true;
+  // padrões comuns de tracking
+  return /^(utm_|matt_|reco_|gclid$|fbclid$|msclkid$|_ga$|_gl$|_gac)/i.test(key);
+}
 
 export function normalizePermalink(u: string): string {
   if (!u) return u;
   try {
     let url = new URL(u);
-    
-    while (url.hostname.includes('click.mercadolivre.com.br') && url.searchParams.has('url')) {
-      const realUrl = url.searchParams.get('url');
-      if (realUrl) {
-        // A URL interna pode não ter um hash, então preservamos o da URL original
-        const originalHash = url.hash;
-        url = new URL(realUrl);
-        url.hash = url.hash || originalHash; // Mantém o hash se a nova URL não tiver um
-      } else {
-        break;
-      }
+
+    // Desenrolar redirecionadores click, click1, click2...
+    const isClickHost = /(^|\.)click\d*\.mercadolivre\.com\.br$/i.test(url.hostname);
+    // alguns casos vêm com 'url' duplamente codificado
+    while (isClickHost && url.searchParams.has('url')) {
+      let real = url.searchParams.get('url')!;
+      try { real = decodeURIComponent(real); } catch {}
+      url = new URL(real);
     }
-    
+
+    // Limpar querystring de rastreadores
     const params = new URLSearchParams(url.search);
-    for (const key of Array.from(params.keys())) {
-      if (LISTING_PARAMS_DROP.has(key)) {
-        params.delete(key);
-      }
+    for (const k of Array.from(params.keys())) {
+      if (shouldStripParam(k)) params.delete(k);
     }
     url.search = params.toString();
+
+    // Remover hash (#polycard_client=..., #position=...)
+    url.hash = '';
 
     return url.href;
   } catch {
@@ -137,6 +143,9 @@ function normalizeItem(card: cheerio.Cheerio<cheerio.Element>, baseUrl: string):
     if (match) itemId = match[1];
   }
 
+  const hrefAbs = new URL(href, baseUrl).href;
+  const permalink = normalizePermalink(hrefAbs);
+
   return {
     id: itemId,
     headline: '',
@@ -144,7 +153,7 @@ function normalizeItem(card: cheerio.Cheerio<cheerio.Element>, baseUrl: string):
     price_from: price_from ?? '',
     price: price,
     coupon: '',
-    permalink: normalizePermalink(new URL(href, baseUrl).href),
+    permalink: permalink,
     image: image,
   };
 }
