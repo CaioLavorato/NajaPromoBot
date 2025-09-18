@@ -62,9 +62,7 @@ export function normalizePermalink(u: string): string {
     let url = new URL(u);
 
     // Desenrolar redirecionadores click, click1, click2...
-    const isClickHost = /(^|\.)click\d*\.mercadolivre\.com\.br$/i.test(url.hostname);
-    // alguns casos vêm com 'url' duplamente codificado
-    while (isClickHost && url.searchParams.has('url')) {
+    while (/(^|\.)click\d*\.mercadolivre\.com\.br$/i.test(url.hostname) && url.searchParams.has('url')) {
       let real = url.searchParams.get('url')!;
       try { real = decodeURIComponent(real); } catch {}
       url = new URL(real);
@@ -171,24 +169,26 @@ function extractResultsFromJson(html: string, baseUrl: string): Offer[] {
 
         const walk = (node: any) => {
             if (typeof node === 'object' && node !== null) {
-                if (node.permalink && node.title && !seen.has(node.permalink)) {
-                    const price = node.price ? (typeof node.price === 'object' ? node.price.amount : node.price) : null;
-                    const price_from = node.original_price || null;
-                    
+                if (node.permalink && node.title) {
                     const permalink = normalizePermalink(new URL(node.permalink, baseUrl).href);
 
-                    const offer: Offer = {
-                        id: node.id || '',
-                        headline: '',
-                        title: node.title,
-                        price: cleanNum(String(price)),
-                        price_from: cleanNum(String(price_from)) ?? '',
-                        coupon: '',
-                        permalink: permalink,
-                        image: node.thumbnail || '',
-                    };
-                    items.push(offer);
-                    seen.add(permalink);
+                    if (!seen.has(permalink)) {
+                        const price = node.price ? (typeof node.price === 'object' ? node.price.amount : node.price) : null;
+                        const price_from = node.original_price || null;
+
+                        const offer: Offer = {
+                            id: node.id || '',
+                            headline: '',
+                            title: node.title,
+                            price: cleanNum(String(price)),
+                            price_from: cleanNum(String(price_from)) ?? '',
+                            coupon: '',
+                            permalink: permalink,
+                            image: node.thumbnail || '',
+                        };
+                        items.push(offer);
+                        seen.add(permalink);
+                    }
                 }
                 Object.values(node).forEach(walk);
             } else if (Array.isArray(node)) {
@@ -204,17 +204,24 @@ function extractResultsFromJson(html: string, baseUrl: string): Offer[] {
     }
 }
 
+// Algoritmo Fisher-Yates para embaralhar um array
+function shuffleArray<T>(array: T[]): T[] {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
 
 export async function scrapeOffersUrls(
   urls: string[],
   maxItems: number = 300
 ): Promise<Offer[]> {
-  const items: Offer[] = [];
+  const allItems: Offer[] = [];
   const seen = new Set<string>();
 
   for (const rawUrl of urls) {
-    if (items.length >= maxItems) break;
-
     try {
       const url = new URL(rawUrl);
       url.hash = ''; // Remove fragment for server request
@@ -227,10 +234,9 @@ export async function scrapeOffersUrls(
       let foundOnPage = 0;
       if (cards.length > 0) {
           cards.each((_, el) => {
-              if (items.length >= maxItems) return false;
               const item = normalizeItem($(el), url.href);
               if (item && !seen.has(item.permalink)) {
-                  items.push(item);
+                  allItems.push(item);
                   seen.add(item.permalink);
                   foundOnPage++;
               }
@@ -240,9 +246,8 @@ export async function scrapeOffersUrls(
       if (foundOnPage === 0) {
         const jsonItems = extractResultsFromJson(html, url.href);
         for (const item of jsonItems) {
-            if (items.length >= maxItems) break;
             if (item && !seen.has(item.permalink)) {
-                items.push(item);
+                allItems.push(item);
                 seen.add(item.permalink);
             }
         }
@@ -254,6 +259,8 @@ export async function scrapeOffersUrls(
     
     await new Promise(resolve => setTimeout(resolve, 600)); // Be nice
   }
-
-  return items.slice(0, maxItems);
+  
+  // Embaralha todos os itens coletados e depois corta no máximo definido
+  const shuffledItems = shuffleArray(allItems);
+  return shuffledItems.slice(0, maxItems);
 }
