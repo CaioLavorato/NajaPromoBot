@@ -95,7 +95,7 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
         if (result.success && result.authUrl) {
             window.open(result.authUrl, '_blank');
         } else {
-            toast({ variant: 'destructive', title: 'Erro de Autenticação', description: result.error || 'Não foi possível gerar a URL de autenticação.' });
+            toast({ variant: 'destructive', title: 'Erro de Autenticação', description: result.error || 'Não foi possível gerar la URL de autenticação.' });
         }
     });
   };
