@@ -25,6 +25,8 @@ export type AppSettings = {
   amazonSecretKey: string;
   shopeeAppId?: string;
   shopeeAppKey?: string;
+  awinApiKey?: string;
+  awinAdvertiserIds?: string;
 };
 
 export type AmazonProduct = {
@@ -72,3 +74,18 @@ export type ShopeeProduct = {
   commission_rate: number;
   affiliate_link: string;
 };
+
+
+export type AwinProduct = {
+  "aw_deep_link": string;
+  "product_name": string;
+  "aw_product_id": string;
+  "advertiser_name": string;
+  "store_price": string;
+  "product_price": string;
+  "image_url": string;
+};
+
+export type AwinOffer = Offer & {
+    advertiser_name: string;
+}

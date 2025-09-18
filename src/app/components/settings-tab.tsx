@@ -112,6 +112,22 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
         </CardHeader>
         <CardContent className="space-y-6">
             <Card>
+                <CardHeader>
+                    <CardTitle>Feed de Produtos Awin</CardTitle>
+                    <CardDescription>Credenciais para acessar os feeds de produtos da Awin.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="space-y-2">
+                        <Label htmlFor="awinApiKey">Awin API Key</Label>
+                        <Input id="awinApiKey" name="awinApiKey" value={localConfig.awinApiKey} onChange={handleInputChange} placeholder="Sua chave de API da Awin" />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="awinAdvertiserIds">Awin Advertiser IDs (separados por vírgula)</Label>
+                        <Input id="awinAdvertiserIds" name="awinAdvertiserIds" value={localConfig.awinAdvertiserIds} onChange={handleInputChange} placeholder="Ex: 12345,67890" />
+                    </div>
+                </CardContent>
+            </Card>
+            <Card>
               <CardHeader>
                   <CardTitle>🛍️ Integração com Shopee</CardTitle>
                   <CardDescription>Configure suas credenciais da API de Afiliados da Shopee.</CardDescription>
