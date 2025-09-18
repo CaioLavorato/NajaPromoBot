@@ -15,6 +15,24 @@ import type { AppSettings, AmazonProduct } from '@/lib/types';
 import { searchAmazonAction, sendAmazonToWhatsAppAction } from '@/app/actions/amazon';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+
+// Categorias da Amazon Brasil (Browse Node IDs)
+const amazonCategories = [
+    { id: "16209062011", name: "Eletrônicos" },
+    { id: "6740748011", name: "Livros" },
+    { id: "16244105011", name: "Casa" },
+    { id: "16243883011", "name": "Cozinha" },
+    { id: "16209071011", name: "Computadores e Informática" },
+    { id: "16249921011", name: "Games" },
+    { id: "16243801011", name: "Beleza" },
+    { id: "16243821011", name: "Cuidados Pessoais" },
+    { id: "16243729011", name: "Brinquedos e Jogos" },
+    { id: "16243642011", name: "Roupas, Calçados e Joias" },
+    { id: "16243576011", name: "Esportes e Aventura" },
+];
+
 
 function SearchSubmitButton() {
   const { pending } = useFormStatus();
@@ -46,7 +64,7 @@ export default function AmazonTab({ appSettings }: AmazonTabProps) {
   const [isWhatsAppPending, startWhatsAppTransition] = useTransition();
 
   const searchActionWithSettings = searchAmazonAction.bind(null, appSettings);
-  const [searchState, formAction] = useActionState(searchActionWithSettings, { data: null });
+  const [searchState, formAction, isSearchPending] = useActionState(searchActionWithSettings, { data: null });
 
   useState(() => {
     if (searchState?.data) {
@@ -79,17 +97,45 @@ export default function AmazonTab({ appSettings }: AmazonTabProps) {
       <CardHeader>
         <CardTitle>Buscar Produtos na Amazon</CardTitle>
         <CardDescription>
-          Use palavras-chave para encontrar produtos e enviá-los para o WhatsApp. As credenciais são gerenciadas na aba de Configurações.
+          Busque por palavra-chave, categoria ou ambos. As credenciais são gerenciadas na aba de Configurações.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
         <form action={formAction} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="keywords">Palavras-chave</Label>
-            <Input id="keywords" name="keywords" placeholder="Ex: smartphone 5g, monitor ultrawide" required />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="keywords">Palavras-chave (Opcional)</Label>
+              <Input id="keywords" name="keywords" placeholder="Ex: smartphone 5g, monitor ultrawide" />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="browseNodeId">Categoria (Opcional)</Label>
+                 <Select name="browseNodeId">
+                    <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {amazonCategories.map(cat => (
+                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
           </div>
+          {searchState?.error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Erro na Validação</AlertTitle>
+              <AlertDescription>{searchState.error}</AlertDescription>
+            </Alert>
+          )}
           <SearchSubmitButton />
         </form>
+
+        {isSearchPending && (
+             <div className="flex justify-center items-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+             </div>
+        )}
 
         {products.length > 0 ? (
           <div className="space-y-6">
@@ -143,17 +189,17 @@ export default function AmazonTab({ appSettings }: AmazonTabProps) {
 
           </div>
         ) : (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Nenhum Resultado</AlertTitle>
-            <AlertDescription>
-              Faça uma busca para ver os produtos aqui.
-            </AlertDescription>
-          </Alert>
+          !isSearchPending && searchState?.data?.length === 0 && (
+            <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Nenhum Resultado</AlertTitle>
+                <AlertDescription>
+                Sua busca não retornou resultados. Tente outros termos ou categorias.
+                </AlertDescription>
+            </Alert>
+          )
         )}
       </CardContent>
     </Card>
   );
 }
-
-    

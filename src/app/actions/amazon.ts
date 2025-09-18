@@ -1,3 +1,4 @@
+
 "use server";
 
 import { z } from 'zod';
@@ -5,8 +6,12 @@ import type { AppSettings, AmazonProduct } from '@/lib/types';
 import crypto from 'crypto';
 
 const SearchSchema = z.object({
-  keywords: z.string().min(3, "Forneça pelo menos 3 caracteres para a busca."),
+  keywords: z.string().optional(),
+  browseNodeId: z.string().optional(),
+}).refine(data => !!data.keywords || !!data.browseNodeId, {
+    message: "Forneça uma palavra-chave ou selecione uma categoria para buscar.",
 });
+
 
 // Helper function to create the AWS signature
 async function createSignature(
@@ -65,13 +70,14 @@ export async function searchAmazonAction(
 ): Promise<{ data: AmazonProduct[] | null; error?: string }> {
   const validatedFields = SearchSchema.safeParse({
     keywords: formData.get('keywords'),
+    browseNodeId: formData.get('browseNodeId'),
   });
 
   if (!validatedFields.success) {
-    return { data: null, error: validatedFields.error.flatten().fieldErrors.keywords?.[0] };
+    return { data: null, error: validatedFields.error.flatten().fieldErrors._form?.[0] };
   }
 
-  const { keywords } = validatedFields.data;
+  const { keywords, browseNodeId } = validatedFields.data;
   const { amazonPartnerTag, amazonAccessKey, amazonSecretKey } = appSettings;
 
   if (!amazonPartnerTag || !amazonAccessKey || !amazonSecretKey) {
@@ -84,8 +90,7 @@ export async function searchAmazonAction(
   const path = '/paapi5/searchitems';
   const marketplace = 'www.amazon.com.br';
 
-  const payload = {
-    Keywords: keywords,
+  const payload: any = {
     PartnerTag: amazonPartnerTag,
     PartnerType: 'Associates',
     ItemCount: 10,
@@ -97,6 +102,14 @@ export async function searchAmazonAction(
     ],
     Marketplace: marketplace,
   };
+
+  if (keywords) {
+    payload.Keywords = keywords;
+  }
+  if (browseNodeId) {
+    payload.BrowseNodeId = browseNodeId;
+  }
+
   const payloadString = JSON.stringify(payload);
   
   const timestamp = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
