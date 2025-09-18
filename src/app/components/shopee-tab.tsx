@@ -15,6 +15,7 @@ import type { AppSettings, ShopeeProduct } from '@/lib/types';
 import { searchShopeeAction, sendShopeeToWhatsAppAction } from '@/app/actions/shopee';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Categorias da Shopee - pode ser expandido
 const shopeeCategories = [
@@ -113,6 +114,16 @@ export default function ShopeeTab({ appSettings }: ShopeeTabProps) {
                 </Select>
             </div>
           </div>
+          <div className="flex flex-wrap gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox id="isLowestPriceGuarantee" name="isLowestPriceGuarantee" />
+                <Label htmlFor="isLowestPriceGuarantee">Garantia de Menor Preço</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox id="isOfficialShop" name="isOfficialShop" />
+                <Label htmlFor="isOfficialShop">Apenas Lojas Oficiais</Label>
+              </div>
+          </div>
           {searchState?.error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -197,5 +208,3 @@ export default function ShopeeTab({ appSettings }: ShopeeTabProps) {
     </Card>
   );
 }
-
-    

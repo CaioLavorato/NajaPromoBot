@@ -10,6 +10,8 @@ const SHOPEE_API_URL = "https://openapi.shopee.com/v2";
 const SearchSchema = z.object({
   keywords: z.string().optional(),
   categoryId: z.string().optional(),
+  isLowestPriceGuarantee: z.boolean().optional(),
+  isOfficialShop: z.boolean().optional(),
 }).refine(data => !!data.keywords || !!data.categoryId, {
     message: "Forneça uma palavra-chave ou selecione uma categoria para buscar.",
 });
@@ -73,13 +75,15 @@ export async function searchShopeeAction(
   const validatedFields = SearchSchema.safeParse({
     keywords: formData.get('keywords'),
     categoryId: formData.get('categoryId'),
+    isLowestPriceGuarantee: formData.get('isLowestPriceGuarantee') === 'on',
+    isOfficialShop: formData.get('isOfficialShop') === 'on',
   });
 
   if (!validatedFields.success) {
     return { data: null, error: validatedFields.error.flatten().fieldErrors._form?.[0] || "Erro de validação." };
   }
   
-  const { keywords, categoryId } = validatedFields.data;
+  const { keywords, categoryId, isLowestPriceGuarantee, isOfficialShop } = validatedFields.data;
   const { shopeeAppId, shopeeAppKey } = appSettings;
 
   if (!shopeeAppId || !shopeeAppKey) {
@@ -92,8 +96,8 @@ export async function searchShopeeAction(
   const requestBody: any = {
       page_size: 20,
       is_mart_item: false,
-      is_lowest_price_guarantee: false,
-      is_official_shop: false,
+      is_lowest_price_guarantee: isLowestPriceGuarantee || false,
+      is_official_shop: isOfficialShop || false,
       need_item_affiliate_info: true,
   };
   
@@ -198,5 +202,3 @@ export async function sendShopeeToWhatsAppAction(
     return { success: false, message: "Nenhuma mensagem de produto da Shopee pôde ser enviada." };
   }
 }
-
-    
