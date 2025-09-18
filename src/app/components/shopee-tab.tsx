@@ -56,7 +56,7 @@ export default function ShopeeTab({ appSettings }: ShopeeTabProps) {
   const [isWhatsAppPending, startWhatsAppTransition] = useTransition();
 
   const searchActionWithSettings = searchShopeeAction.bind(null, appSettings);
-  const [searchState, formAction] = useActionState(searchActionWithSettings, { data: null });
+  const [searchState, formAction, isSearchPending] = useActionState(searchActionWithSettings, { data: null });
 
   useState(() => {
     if (searchState?.data) {
@@ -89,15 +89,15 @@ export default function ShopeeTab({ appSettings }: ShopeeTabProps) {
       <CardHeader>
         <CardTitle>Buscar Ofertas na Shopee</CardTitle>
         <CardDescription>
-          Use palavras-chave para encontrar ofertas e enviá-las para o WhatsApp. As credenciais são gerenciadas na aba de Configurações.
+          Busque por palavra-chave, categoria, ou ambos. As credenciais são gerenciadas na aba de Configurações.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
         <form action={formAction} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="keywords">Palavras-chave</Label>
-              <Input id="keywords" name="keywords" placeholder="Ex: fone bluetooth, smartwatch" required />
+              <Label htmlFor="keywords">Palavras-chave (Opcional)</Label>
+              <Input id="keywords" name="keywords" placeholder="Ex: fone bluetooth, smartwatch" />
             </div>
              <div className="space-y-2">
                 <Label htmlFor="categoryId">Categoria (Opcional)</Label>
@@ -113,10 +113,23 @@ export default function ShopeeTab({ appSettings }: ShopeeTabProps) {
                 </Select>
             </div>
           </div>
+          {searchState?.error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Erro na Validação</AlertTitle>
+              <AlertDescription>{searchState.error}</AlertDescription>
+            </Alert>
+          )}
           <SearchSubmitButton />
         </form>
 
-        {products.length > 0 ? (
+        {isSearchPending && (
+             <div className="flex justify-center items-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+             </div>
+        )}
+
+        {products.length > 0 && !isSearchPending ? (
           <div className="space-y-6">
             <h3 className="font-headline text-2xl font-semibold">Resultados da Busca ({products.length})</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -170,13 +183,15 @@ export default function ShopeeTab({ appSettings }: ShopeeTabProps) {
 
           </div>
         ) : (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Nenhum Resultado</AlertTitle>
-            <AlertDescription>
-              Faça uma busca para ver as ofertas da Shopee aqui.
-            </AlertDescription>
-          </Alert>
+          !isSearchPending && searchState?.data?.length === 0 && (
+            <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Nenhum Resultado</AlertTitle>
+                <AlertDescription>
+                Sua busca não retornou resultados. Tente outros termos ou categorias.
+                </AlertDescription>
+            </Alert>
+           )
         )}
       </CardContent>
     </Card>

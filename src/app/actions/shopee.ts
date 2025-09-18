@@ -1,3 +1,4 @@
+
 "use server";
 
 import { z } from 'zod';
@@ -7,8 +8,10 @@ import type { AppSettings, ShopeeProduct } from '@/lib/types';
 const SHOPEE_API_URL = "https://openapi.shopee.com/v2";
 
 const SearchSchema = z.object({
-  keywords: z.string().min(3, "Forneça pelo menos 3 caracteres para a busca."),
-  categoryId: z.string().optional(), // Tornando opcional
+  keywords: z.string().optional(),
+  categoryId: z.string().optional(),
+}).refine(data => !!data.keywords || !!data.categoryId, {
+    message: "Forneça uma palavra-chave ou selecione uma categoria para buscar.",
 });
 
 // Função para gerar a assinatura necessária para a API da Shopee
@@ -73,7 +76,7 @@ export async function searchShopeeAction(
   });
 
   if (!validatedFields.success) {
-    return { data: null, error: validatedFields.error.flatten().fieldErrors.keywords?.[0] };
+    return { data: null, error: validatedFields.error.flatten().fieldErrors._form?.[0] || "Erro de validação." };
   }
   
   const { keywords, categoryId } = validatedFields.data;
@@ -88,12 +91,15 @@ export async function searchShopeeAction(
   
   const requestBody: any = {
       page_size: 20,
-      keyword: keywords,
       is_mart_item: false,
       is_lowest_price_guarantee: false,
       is_official_shop: false,
       need_item_affiliate_info: true,
   };
+  
+  if (keywords) {
+      requestBody.keyword = keywords;
+  }
   
   if (categoryId) {
       requestBody.category_id_list = [parseInt(categoryId, 10)];
@@ -192,3 +198,5 @@ export async function sendShopeeToWhatsAppAction(
     return { success: false, message: "Nenhuma mensagem de produto da Shopee pôde ser enviada." };
   }
 }
+
+    
