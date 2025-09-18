@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/app/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'Promobot',
+  title: 'NajaPromo',
   description: 'Seu assistente para caçar, gerenciar e publicar as melhores ofertas da web.',
 };
 
