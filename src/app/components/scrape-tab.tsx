@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useTransition, useActionState, useState } from 'react';
@@ -250,3 +251,5 @@ export default function ScrapeTab({ offers, setOffers, appSettings }: ScrapeTabP
     </Card>
   );
 }
+
+    

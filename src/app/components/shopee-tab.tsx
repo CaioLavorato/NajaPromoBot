@@ -1,8 +1,9 @@
+
 "use client";
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useActionState } from 'react';
 import Image from 'next/image';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -55,7 +56,7 @@ export default function ShopeeTab({ appSettings }: ShopeeTabProps) {
   const [isWhatsAppPending, startWhatsAppTransition] = useTransition();
 
   const searchActionWithSettings = searchShopeeAction.bind(null, appSettings);
-  const [searchState, formAction] = useFormState(searchActionWithSettings, { data: null });
+  const [searchState, formAction] = useActionState(searchActionWithSettings, { data: null });
 
   useState(() => {
     if (searchState?.data) {
@@ -182,3 +183,5 @@ export default function ShopeeTab({ appSettings }: ShopeeTabProps) {
     </Card>
   );
 }
+
+    
