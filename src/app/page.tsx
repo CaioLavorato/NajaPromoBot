@@ -7,11 +7,10 @@ export default function Home() {
       <div className="flex flex-col gap-8">
         <header className="relative text-center">
           <h1 className="font-headline text-4xl font-bold tracking-tight lg:text-5xl">
-            MeliAffiliator
+            Promobot
           </h1>
           <p className="mt-2 text-lg text-muted-foreground">
-            Extraia ofertas do Mercado Livre, gerencie links de afiliados e poste no
-            WhatsApp.
+            Seu assistente para caçar, gerenciar e publicar as melhores ofertas da web.
           </p>
            <div className="absolute top-0 right-0">
             <ThemeToggle />

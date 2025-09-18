@@ -4,8 +4,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/app/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'MeliAffiliator',
-  description: 'Extraia ofertas do Mercado Livre e gerencie links de afiliados',
+  title: 'Promobot',
+  description: 'Seu assistente para caçar, gerenciar e publicar as melhores ofertas da web.',
 };
 
 export default function RootLayout({
