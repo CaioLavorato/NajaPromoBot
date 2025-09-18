@@ -116,6 +116,8 @@ export async function sendAwinToWhatsAppAction(
   const formData = new FormData();
   formData.append('whapiToken', appSettings.whapiToken);
   formData.append('whapiGroupIds', JSON.stringify(appSettings.whapiSelectedGroups.map(g => g.id)));
+  formData.append('whapiInterval', String(appSettings.whapiInterval));
+  formData.append('whapiSendLimit', String(appSettings.whapiSendLimit));
 
   return await sendToWhatsAppAction(offersToSend, formData);
 }

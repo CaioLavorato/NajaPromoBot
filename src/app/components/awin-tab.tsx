@@ -26,16 +26,6 @@ function ProcessSubmitButton() {
   );
 }
 
-function WhatsAppSubmitButton({ disabled }: { disabled: boolean }) {
-    const { pending } = useFormStatus();
-    return (
-        <Button type="submit" disabled={pending || disabled} className="w-full">
-            {pending ? <Loader2 className="animate-spin" /> : <Send />}
-            Enviar para WhatsApp
-        </Button>
-    );
-}
-
 type AwinTabProps = {
   appSettings: AppSettings;
 };
@@ -59,9 +49,14 @@ export default function AwinTab({ appSettings }: AwinTabProps) {
     }
   });
   
-  const handleSendToWhatsApp = async (formData: FormData) => {
+  const handleSendToWhatsApp = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (offers.length === 0) {
       toast({ variant: 'destructive', title: 'Nenhuma oferta para enviar' });
+      return;
+    }
+     if (!appSettings.whapiToken || appSettings.whapiSelectedGroups.length === 0) {
+      toast({ variant: 'destructive', title: 'WhatsApp Não Configurado', description: 'Por favor, configure seu Token e selecione ao menos um grupo na aba de Configurações.'});
       return;
     }
     
@@ -158,8 +153,11 @@ export default function AwinTab({ appSettings }: AwinTabProps) {
                     <CardTitle>📱 Enviar para o WhatsApp</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <form action={handleSendToWhatsApp}>
-                         <WhatsAppSubmitButton disabled={offers.length === 0} />
+                    <form onSubmit={handleSendToWhatsApp}>
+                         <Button type="submit" disabled={isWhatsAppPending || offers.length === 0} className="w-full">
+                            {isWhatsAppPending ? <Loader2 className="animate-spin" /> : <Send />}
+                            Enviar para WhatsApp
+                        </Button>
                     </form>
                 </CardContent>
             </Card>

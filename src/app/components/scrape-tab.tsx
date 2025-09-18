@@ -149,6 +149,8 @@ export default function ScrapeTab({ offers, setOffers, appSettings }: ScrapeTabP
     const formData = new FormData();
     formData.append('whapiToken', appSettings.whapiToken);
     formData.append('whapiGroupIds', JSON.stringify(appSettings.whapiSelectedGroups.map(g => g.id)));
+    formData.append('whapiInterval', String(appSettings.whapiInterval));
+    formData.append('whapiSendLimit', String(appSettings.whapiSendLimit));
 
     startWhatsAppTransition(async () => {
       const result = await sendToWhatsAppAction(offers, formData);

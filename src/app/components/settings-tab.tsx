@@ -177,7 +177,7 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
           <Card>
             <CardHeader>
               <CardTitle>📱 Integração com WhatsApp</CardTitle>
-              <CardDescription>Configure suas credenciais da API Whapi.cloud.</CardDescription>
+              <CardDescription>Configure suas credenciais da API Whapi.cloud e parâmetros de envio.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -191,83 +191,71 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
                   placeholder="Seu token da API Whapi"
                 />
               </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="whapiInterval">Intervalo (segundos)</Label>
+                        <Input id="whapiInterval" name="whapiInterval" type="number" value={localConfig.whapiInterval} onChange={handleNumericInputChange} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="whapiSendLimit">Limite de envios</Label>
+                        <Input id="whapiSendLimit" name="whapiSendLimit" type="number" value={localConfig.whapiSendLimit} onChange={handleNumericInputChange} />
+                    </div>
+                </div>
             </CardContent>
           </Card>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-1">
-                  <CardHeader>
-                      <CardTitle>Gerenciamento de Grupos</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                          <Label htmlFor="manualGroups">Grupos (separados por vírgula)</Label>
-                          <Textarea id="manualGroups" placeholder="Promoções, Achados" onBlur={(e) => handleManualGroups(e.target.value)} />
-                      </div>
-                      <Button type="button" onClick={handleFetchGroups} disabled={isFetching} className="w-full">
-                          {isFetching ? <Loader2 className="animate-spin"/> : 'Carregar grupos da API'}
-                      </Button>
-                      <div className="space-y-2">
-                          <Input placeholder="Buscar grupo..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
-                      </div>
+          <Card>
+              <CardHeader>
+                  <CardTitle>Gerenciamento de Grupos do WhatsApp</CardTitle>
+                  <CardDescription>Carregue grupos da API ou adicione manualmente os IDs.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="manualGroups">Adicionar Grupos por ID (separados por vírgula)</Label>
+                      <Textarea id="manualGroups" placeholder="1234567890@g.us,0987654321@g.us" onBlur={(e) => handleManualGroups(e.target.value)} />
+                  </div>
+                  <Button type="button" onClick={handleFetchGroups} disabled={isFetching} className="w-full">
+                      {isFetching ? <Loader2 className="animate-spin"/> : 'Carregar grupos da API'}
+                  </Button>
+                  <div className="space-y-2">
+                      <Label>Grupos Selecionados ({localConfig.whapiSelectedGroups.length})</Label>
+                      <Input placeholder="Buscar grupo..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
+                  </div>
 
-                      <Label>{localConfig.whapiSelectedGroups.length} selecionado(s)</Label>
-                      <ScrollArea className="h-40 rounded-md border p-2">
-                          {filteredGroups.length > 0 ? (
-                            filteredGroups.map(group => (
-                                <div key={group.id} className="flex items-center space-x-2 p-1">
-                                    <Checkbox 
-                                        id={group.id} 
-                                        checked={localConfig.whapiSelectedGroups.some(g => g.id === group.id)}
-                                        onCheckedChange={(checked) => handleGroupSelection(group, !!checked)}
-                                    />
-                                    <Label htmlFor={group.id} className="font-normal">{group.name}</Label>
-                                </div>
-                            ))
-                          ) : (
-                             allGroups.length > 0 ? (
-                                allGroups.map(group => (
-                                <div key={group.id} className="flex items-center space-x-2 p-1">
-                                    <Checkbox 
-                                        id={group.id} 
-                                        checked={localConfig.whapiSelectedGroups.some(g => g.id === group.id)}
-                                        onCheckedChange={(checked) => handleGroupSelection(group, !!checked)}
-                                    />
-                                    <Label htmlFor={group.id} className="font-normal">{group.name}</Label>
-                                </div>
-                                ))
-                             ) : (
-                                <p className="text-sm text-muted-foreground p-2">
-                                    Nenhum grupo. Clique em "Carregar grupos da API".
-                                </p>
-                             )
-                          )}
-                      </ScrollArea>
-                      <Button type="button" variant="outline" onClick={() => { setLocalConfig(p => ({...p, whapiSelectedGroups: []})); setAllGroups([]); setSearchTerm(''); }} className="w-full">
-                          <Trash2 className="mr-2 h-4 w-4"/> Limpar
-                      </Button>
-                  </CardContent>
-              </Card>
+                  <ScrollArea className="h-40 rounded-md border p-2">
+                      {filteredGroups.length > 0 ? (
+                        filteredGroups.map(group => (
+                            <div key={group.id} className="flex items-center space-x-2 p-1">
+                                <Checkbox 
+                                    id={group.id} 
+                                    checked={localConfig.whapiSelectedGroups.some(g => g.id === group.id)}
+                                    onCheckedChange={(checked) => handleGroupSelection(group, !!checked)}
+                                />
+                                <Label htmlFor={group.id} className="font-normal">{group.name} ({group.id})</Label>
+                            </div>
+                        ))
+                      ) : (
+                         <p className="text-sm text-muted-foreground p-2">
+                             Nenhum grupo carregado. Clique em "Carregar grupos da API" ou adicione manualmente.
+                         </p>
+                      )}
+                  </ScrollArea>
+                   <ScrollArea className="h-24 rounded-md border p-2 mt-2">
+                      {localConfig.whapiSelectedGroups.map(g => (
+                          <div key={g.id} className="flex items-center justify-between p-1 text-sm">
+                              <span>{g.name}</span>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleGroupSelection(g, false)}>
+                                  <Trash2 className="h-4 w-4"/>
+                              </Button>
+                          </div>
+                      ))}
+                    </ScrollArea>
 
-              <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Intervalo (segundos)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Input id="whapiInterval" name="whapiInterval" type="number" value={localConfig.whapiInterval} onChange={handleNumericInputChange} />
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Limite de envios</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Input id="whapiSendLimit" name="whapiSendLimit" type="number" value={localConfig.whapiSendLimit} onChange={handleNumericInputChange} />
-                    </CardContent>
-                </Card>
-              </div>
-          </div>
+                  <Button type="button" variant="outline" onClick={() => { setLocalConfig(p => ({...p, whapiSelectedGroups: []})); setAllGroups([]); setSearchTerm(''); }} className="w-full">
+                      <Trash2 className="mr-2 h-4 w-4"/> Limpar Seleção
+                  </Button>
+              </CardContent>
+          </Card>
         </CardContent>
       </Card>
       <Button type="submit" className="w-full">

@@ -1,3 +1,4 @@
+
 // src/ai/flows/summarize-offers-for-whatsapp.ts
 'use server';
 
@@ -118,18 +119,18 @@ Use a ferramenta 'postMediaToWhatsApp' para CADA oferta.
 
 ---
 EXEMPLO DE FORMATAÇÃO DA LEGENDA (CAPTION):
-{{headline}}
+{{{headline}}}
 
-{{title}}
+{{{title}}}
 
 {{#if coupon}}
-Use o cupom: *{{coupon}}* 🎟️
+Use o cupom: *{{{coupon}}}* 🎟️
 {{/if}}
 
-De: R$ {{formatCurrency price_from}} | Por: R$ {{formatCurrency price}} 🔥 ({{#discount price_from price}}{{/discount}}% ⬇️)
+De: R$ {{{formatCurrency price_from}}} | Por: R$ {{{formatCurrency price}}} 🔥 ({{#discount price_from price}}{{/discount}}% ⬇️)
 
-Achado na {{#if advertiser_name}}{{advertiser_name}}{{else}}Mercado Livre{{/if}} ⚡️
-{{permalink}}
+Achado na {{#if advertiser_name}}{{{advertiser_name}}}{{else}}Mercado Livre{{/if}} ⚡️
+{{{permalink}}}
 ---
 
 Certifique-se de calcular o desconto e formatar os preços corretamente. Chame a ferramenta para cada oferta individualmente. Se não houver ofertas, retorne uma mensagem de sucesso indicando que nada foi feito.
@@ -165,7 +166,7 @@ const summarizeOffersForWhatsAppFlow = ai.defineFlow(
     inputSchema: SummarizeOffersInputSchema,
     outputSchema: SummarizeOffersOutputSchema,
   },
-  async input => {
+  async (input, streamingCallback) => {
     if (input.offers.length === 0) {
       return { success: true, message: 'Nenhuma oferta para enviar.' };
     }
@@ -173,21 +174,34 @@ const summarizeOffersForWhatsAppFlow = ai.defineFlow(
     const { toolRequests } = await summarizeOffersPrompt(input);
     
     let sentCount = 0;
-    for (const toolRequest of toolRequests) {
+    const totalRequests = toolRequests.length;
+
+    for (let i = 0; i < totalRequests; i++) {
+        const toolRequest = toolRequests[i];
+        if (streamingCallback) {
+          streamingCallback({
+            index: i + 1,
+            total: totalRequests,
+            message: `Enviando oferta ${i + 1} de ${totalRequests}...`
+          });
+        }
+        
         if (toolRequest.tool.name === 'postMediaToWhatsApp') {
             const result = await toolRequest.run();
             if (result) {
                 sentCount++;
             }
-            // Intervalo entre as mensagens
-            await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+        // Intervalo entre as mensagens individuais (para a mesma chamada de flow)
+        if (i < totalRequests - 1) {
+            await new Promise(resolve => setTimeout(resolve, 3000));
         }
     }
     
     if (sentCount > 0) {
       return { success: true, message: `${sentCount} de ${input.offers.length} ofertas enviadas com sucesso para o WhatsApp.` };
     } else {
-      return { success: false, message: 'Nenhuma oferta pôde ser enviada para o WhatsApp.' };
+      return { success: false, message: 'Nenhuma oferta pôde ser enviada para o WhatsApp. Verifique os logs do servidor.' };
     }
   }
 );
