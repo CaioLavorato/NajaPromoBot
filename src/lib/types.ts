@@ -20,4 +20,39 @@ export type AppSettings = {
   whapiSelectedGroups: WhapiGroup[];
   whapiInterval: number;
   whapiSendLimit: number;
+  amazonPartnerTag: string;
+  amazonAccessKey: string;
+  amazonSecretKey: string;
+};
+
+export type AmazonProduct = {
+  ASIN: string;
+  DetailPageURL: string;
+  ItemInfo: {
+    Title: {
+      DisplayValue: string;
+    };
+    Features?: {
+      DisplayValues: string[];
+    };
+  };
+  Images: {
+    Primary: {
+      Large: {
+        URL: string;
+      };
+    };
+  };
+  Offers?: {
+    Listings: {
+      Price: {
+        DisplayAmount: string;
+        Amount: number;
+      };
+      Saving?: {
+        DisplayAmount: string;
+        Percentage: number;
+      };
+    }[];
+  };
 };

@@ -111,6 +111,26 @@ export default function SettingsTab({ appSettings, setAppSettings }: SettingsTab
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+           <Card>
+              <CardHeader>
+                  <CardTitle>🛒 Integração com Amazon</CardTitle>
+                  <CardDescription>Configure suas credenciais da Product Advertising API.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="amazonPartnerTag">Partner Tag (ID de Associado)</Label>
+                      <Input id="amazonPartnerTag" name="amazonPartnerTag" value={localConfig.amazonPartnerTag} onChange={handleInputChange} placeholder="seusite-20" />
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="amazonAccessKey">Access Key</Label>
+                      <Input id="amazonAccessKey" name="amazonAccessKey" value={localConfig.amazonAccessKey} onChange={handleInputChange} placeholder="AKIA..." />
+                  </div>
+                   <div className="space-y-2">
+                      <Label htmlFor="amazonSecretKey">Secret Key</Label>
+                      <Input id="amazonSecretKey" name="amazonSecretKey" type="password" value={localConfig.amazonSecretKey} onChange={handleInputChange} placeholder="Sua chave secreta" />
+                  </div>
+              </CardContent>
+            </Card>
           <Card>
             <CardHeader>
                 <CardTitle>🚀 Integração com Mercado Livre</CardTitle>

@@ -5,7 +5,8 @@ import type { Offer } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ScrapeTab from '@/app/components/scrape-tab';
 import SettingsTab from '@/app/components/settings-tab';
-import { Bot, Settings } from 'lucide-react';
+import AmazonTab from '@/app/components/amazon-tab';
+import { Bot, Settings, ShoppingCart } from 'lucide-react';
 import type { AppSettings } from '@/lib/types';
 
 export default function MeliAffiliator() {
@@ -15,14 +16,21 @@ export default function MeliAffiliator() {
     whapiSelectedGroups: [],
     whapiInterval: 25,
     whapiSendLimit: 5,
+    amazonPartnerTag: '',
+    amazonAccessKey: '',
+    amazonSecretKey: '',
   });
 
   return (
     <Tabs defaultValue="scraper" className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
+      <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="scraper">
           <Bot className="mr-2 h-4 w-4" />
-          Extrair e Postar
+          Mercado Livre
+        </TabsTrigger>
+        <TabsTrigger value="amazon">
+          <ShoppingCart className="mr-2 h-4 w-4" />
+          Amazon
         </TabsTrigger>
         <TabsTrigger value="settings">
           <Settings className="mr-2 h-4 w-4" />
@@ -31,6 +39,9 @@ export default function MeliAffiliator() {
       </TabsList>
       <TabsContent value="scraper">
         <ScrapeTab offers={offers} setOffers={setOffers} appSettings={appSettings} />
+      </TabsContent>
+       <TabsContent value="amazon">
+        <AmazonTab appSettings={appSettings} />
       </TabsContent>
       <TabsContent value="settings">
         <SettingsTab appSettings={appSettings} setAppSettings={setAppSettings} />
