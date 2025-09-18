@@ -104,6 +104,7 @@ Aqui estão as informações das ofertas:
   Chamada: {{headline}}
   Preço Original: R$ {{#if (isNumber price_from)}}{{price_from}}{{else}}0{{/if}}
   Preço com Desconto: R$ {{#if price}}{{price}}{{else}}0{{/if}}
+  Cupom: {{coupon}}
   Desconto: {{#discount price_from price}}{{/discount}}%
   Achado em: {{#if advertiser_name}}{{advertiser_name}}{{else}}Mercado Livre{{/if}}
   Link: {{permalink}}
@@ -120,6 +121,10 @@ EXEMPLO DE FORMATAÇÃO DA LEGENDA (CAPTION):
 {{headline}}
 
 {{title}}
+
+{{#if coupon}}
+Use o cupom: *{{coupon}}* 🎟️
+{{/if}}
 
 De: R$ {{formatCurrency price_from}} | Por: R$ {{formatCurrency price}} 🔥 ({{#discount price_from price}}{{/discount}}% ⬇️)
 
