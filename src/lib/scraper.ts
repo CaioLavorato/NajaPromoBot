@@ -51,7 +51,17 @@ const LISTING_PARAMS_DROP = new Set([
 export function normalizePermalink(u: string): string {
   if (!u) return u;
   try {
-    const url = new URL(u);
+    let url = new URL(u);
+    const originalHash = url.hash;
+
+    // Se for um link de rastreamento, extrai a URL real do parâmetro 'url'
+    if (url.hostname.includes('click.mercadolivre.com.br')) {
+      const realUrl = url.searchParams.get('url');
+      if (realUrl) {
+        url = new URL(realUrl);
+      }
+    }
+    
     const params = new URLSearchParams(url.search);
     for (const key of Array.from(params.keys())) {
       if (LISTING_PARAMS_DROP.has(key)) {
@@ -59,8 +69,9 @@ export function normalizePermalink(u: string): string {
       }
     }
     url.search = params.toString();
-    // Keep fragment from original url, it can be important for offers
-    return url.href.split('#')[0] + (u.includes('#') ? '#' + u.split('#')[1] : '');
+    url.hash = originalHash; // Preserva o fragmento original (#)
+
+    return url.href;
   } catch {
     return u;
   }
