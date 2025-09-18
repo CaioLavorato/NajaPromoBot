@@ -30,6 +30,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    serverComponentsExternalPackages: ['chrome-aws-lambda', 'puppeteer-core'],
+  },
 };
 
 export default nextConfig;

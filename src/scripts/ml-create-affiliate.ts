@@ -12,7 +12,6 @@ export async function createAffiliateLinksWithBrowser(urls: string[], tag: strin
     args: chromium.args,
     executablePath: await chromium.executablePath || undefined,
     headless: chromium.headless,
-    userDataDir: './.puppeteer-profile-ml'
   });
   const page = await browser.newPage();
 
