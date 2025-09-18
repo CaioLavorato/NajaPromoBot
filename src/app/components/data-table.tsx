@@ -107,6 +107,14 @@ export default function DataTable({ offers, onUpdateOffer, onDeleteOffer }: Data
               onChange={e => handleInputChange('price', e.target.value)}
             />
           </TableCell>
+          <TableCell>
+            <Input
+              className="w-24"
+              placeholder="Cupom"
+              value={editState.coupon}
+              onChange={e => handleInputChange('coupon', e.target.value)}
+            />
+          </TableCell>
            <TableCell>
             <Textarea
               className="h-16 w-32 text-xs"
@@ -161,6 +169,9 @@ export default function DataTable({ offers, onUpdateOffer, onDeleteOffer }: Data
           {formatCurrency(offer.price)}
         </TableCell>
         <TableCell>
+            {offer.coupon ? <Badge>{offer.coupon}</Badge> : '-'}
+        </TableCell>
+        <TableCell>
           <a
             href={offer.permalink}
             target="_blank"
@@ -194,6 +205,7 @@ export default function DataTable({ offers, onUpdateOffer, onDeleteOffer }: Data
             <TableHead className="text-right">Desconto</TableHead>
             <TableHead className="text-right">Preço Original</TableHead>
             <TableHead className="text-right">Preço da Oferta</TableHead>
+            <TableHead>Cupom</TableHead>
             <TableHead>Link</TableHead>
             <TableHead>Ações</TableHead>
           </TableRow>
