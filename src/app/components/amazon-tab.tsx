@@ -102,7 +102,7 @@ export default function AmazonTab({ appSettings }: AmazonTabProps) {
       </CardHeader>
       <CardContent className="space-y-8">
         <form action={formAction} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="keywords">Palavras-chave (Opcional)</Label>
               <Input id="keywords" name="keywords" placeholder="Ex: smartphone 5g, monitor ultrawide" />
@@ -119,6 +119,10 @@ export default function AmazonTab({ appSettings }: AmazonTabProps) {
                         ))}
                     </SelectContent>
                 </Select>
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="minDiscount">Desconto Mín. (%)</Label>
+              <Input id="minDiscount" name="minDiscount" type="number" defaultValue={0} min={0} max={100} step={5} />
             </div>
           </div>
           {searchState?.error && (

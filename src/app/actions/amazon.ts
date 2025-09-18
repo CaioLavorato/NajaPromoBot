@@ -8,6 +8,7 @@ import crypto from 'crypto';
 const SearchSchema = z.object({
   keywords: z.string().optional(),
   browseNodeId: z.string().optional(),
+  minDiscount: z.number().min(0).max(100).optional(),
 }).refine(data => !!data.keywords || !!data.browseNodeId, {
     message: "Forneça uma palavra-chave ou selecione uma categoria para buscar.",
 });
@@ -71,13 +72,14 @@ export async function searchAmazonAction(
   const validatedFields = SearchSchema.safeParse({
     keywords: formData.get('keywords'),
     browseNodeId: formData.get('browseNodeId'),
+    minDiscount: Number(formData.get('minDiscount')) || undefined,
   });
 
   if (!validatedFields.success) {
     return { data: null, error: validatedFields.error.flatten().fieldErrors._form?.[0] };
   }
 
-  const { keywords, browseNodeId } = validatedFields.data;
+  const { keywords, browseNodeId, minDiscount } = validatedFields.data;
   const { amazonPartnerTag, amazonAccessKey, amazonSecretKey } = appSettings;
 
   if (!amazonPartnerTag || !amazonAccessKey || !amazonSecretKey) {
@@ -109,6 +111,10 @@ export async function searchAmazonAction(
   if (browseNodeId) {
     payload.BrowseNodeId = browseNodeId;
   }
+  if (minDiscount && minDiscount > 0) {
+    payload.MinSavingPercent = minDiscount;
+  }
+
 
   const payloadString = JSON.stringify(payload);
   
