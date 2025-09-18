@@ -214,55 +214,59 @@ export default function ScrapeTab({ offers, setOffers, appSettings }: ScrapeTabP
       ) : (
         <CardContent className="space-y-8">
             <section className="grid md:grid-cols-2 gap-8">
-               <Card>
-                  <CardHeader>
-                      <CardTitle>🔗 Geração de Links de Afiliado</CardTitle>
-                      <CardDescription>
-                        Gere links de afiliado para as ofertas extraídas usando a API do Mercado Livre.
-                      </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                          <Label htmlFor="affiliate-tag">Tag de Afiliado (Opcional)</Label>
-                          <Input id="affiliate-tag" value={affiliateTag} onChange={(e) => setAffiliateTag(e.target.value)} placeholder="Ex: meu-site-123" />
-                      </div>
-                      <div className="flex items-center space-x-2">
-                          <Checkbox id="regenerate-headline" checked={regenerateHeadline} onCheckedChange={(checked) => setRegenerateHeadline(!!checked)} />
-                          <Label htmlFor="regenerate-headline">Gerar/atualizar chamada por desconto</Label>
-                      </div>
-                      <Button onClick={handleGenerateAffiliateLinks} disabled={isGeneratingLinks} className="w-full">
-                        {isGeneratingLinks ? <Loader2 className="animate-spin" /> : <LinkIcon />}
-                        Gerar Links de Afiliado
-                      </Button>
-                  </CardContent>
-               </Card>
-               
-               <Card>
-                  <CardHeader>
-                    <CardTitle>📋 Colar Links Manualmente</CardTitle>
-                    <CardDescription>
-                      Cole uma lista de links de afiliado para substituir os links da tabela na ordem.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="pasted-links">Links de Afiliado (um por linha)</Label>
-                      <Textarea
-                        id="pasted-links"
-                        value={pastedLinks}
-                        onChange={(e) => setPastedLinks(e.target.value)}
-                        placeholder="https://mercadolivre.com/sec/link1..."
-                        rows={3}
-                      />
-                    </div>
-                    <Button onClick={handleApplyPastedLinks} className="w-full">
-                      <ClipboardPaste />
-                      Substituir Links
-                    </Button>
-                  </CardContent>
-                </Card>
+               <div className="flex flex-col gap-8">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>🔗 Geração de Links de Afiliado</CardTitle>
+                            <CardDescription>
+                                Gere links de afiliado para as ofertas extraídas usando a API do Mercado Livre.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="affiliate-tag">Tag de Afiliado (Opcional)</Label>
+                                <Input id="affiliate-tag" value={affiliateTag} onChange={(e) => setAffiliateTag(e.target.value)} placeholder="Ex: meu-site-123" />
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox id="regenerate-headline" checked={regenerateHeadline} onCheckedChange={(checked) => setRegenerateHeadline(!!checked)} />
+                                <Label htmlFor="regenerate-headline">Gerar/atualizar chamada por desconto</Label>
+                            </div>
+                            <Button onClick={handleGenerateAffiliateLinks} disabled={isGeneratingLinks} className="w-full">
+                                {isGeneratingLinks ? <Loader2 className="animate-spin" /> : <LinkIcon />}
+                                Gerar Links de Afiliado
+                            </Button>
+                        </CardContent>
+                    </Card>
+                    
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>📋 Colar Links Manualmente</CardTitle>
+                            <CardDescription>
+                            Cole uma lista de links de afiliado para substituir os links da tabela na ordem.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                            <Label htmlFor="pasted-links">Links de Afiliado (um por linha)</Label>
+                            <Textarea
+                                id="pasted-links"
+                                value={pastedLinks}
+                                onChange={(e) => setPastedLinks(e.target.value)}
+                                placeholder="https://mercadolivre.com/sec/link1..."
+                                rows={3}
+                            />
+                            </div>
+                            <Button onClick={handleApplyPastedLinks} className="w-full">
+                            <ClipboardPaste />
+                            Substituir Links
+                            </Button>
+                        </CardContent>
+                    </Card>
+               </div>
 
-               <PermalinkTools offers={offers} />
+               <div>
+                 <PermalinkTools offers={offers} />
+               </div>
             </section>
         
           <section>
