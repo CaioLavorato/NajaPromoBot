@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Wand2, Trash2, Download, Send, Replace, Link as LinkIcon } from 'lucide-react';
+import { Loader2, AlertCircle, Wand2, Trash2, Download, Send, Replace, Link as LinkIcon, ClipboardPaste } from 'lucide-react';
 
 import type { Offer, AppSettings } from '@/lib/types';
 import { scrapeOffersAction } from '@/app/actions/scrape';
@@ -50,6 +50,8 @@ export default function ScrapeTab({ offers, setOffers, appSettings }: ScrapeTabP
   
   const [regenerateHeadline, setRegenerateHeadline] = useState(true);
   const [affiliateTag, setAffiliateTag] = useState('');
+  const [pastedLinks, setPastedLinks] = useState('');
+
 
   useEffect(() => {
     if (scrapeState?.data) {
@@ -107,6 +109,29 @@ export default function ScrapeTab({ offers, setOffers, appSettings }: ScrapeTabP
         toast({ variant: 'destructive', title: 'Erro ao Gerar Links', description: message });
       }
     });
+  };
+
+  const handleApplyPastedLinks = () => {
+    if (!offers || offers.length === 0) {
+      toast({ variant: 'destructive', title: 'Nenhuma oferta para modificar.' });
+      return;
+    }
+    const linksToApply = pastedLinks.split('\n').map(l => l.trim()).filter(Boolean);
+    if (linksToApply.length === 0) {
+      toast({ variant: 'destructive', title: 'Nenhum link colado.' });
+      return;
+    }
+    
+    const newOffers = offers.map((offer, index) => {
+        if (index < linksToApply.length) {
+            return { ...offer, permalink: linksToApply[index] };
+        }
+        return offer;
+    });
+
+    setOffers(newOffers);
+    toast({ title: 'Sucesso', description: `Foram substituídos ${Math.min(offers.length, linksToApply.length)} links.` });
+    setPastedLinks('');
   };
 
 
@@ -211,6 +236,32 @@ export default function ScrapeTab({ offers, setOffers, appSettings }: ScrapeTabP
                       </Button>
                   </CardContent>
                </Card>
+               
+               <Card>
+                  <CardHeader>
+                    <CardTitle>📋 Colar Links Manualmente</CardTitle>
+                    <CardDescription>
+                      Cole uma lista de links de afiliado para substituir os links da tabela na ordem.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="pasted-links">Links de Afiliado (um por linha)</Label>
+                      <Textarea
+                        id="pasted-links"
+                        value={pastedLinks}
+                        onChange={(e) => setPastedLinks(e.target.value)}
+                        placeholder="https://mercadolivre.com/sec/link1..."
+                        rows={3}
+                      />
+                    </div>
+                    <Button onClick={handleApplyPastedLinks} className="w-full">
+                      <ClipboardPaste />
+                      Substituir Links
+                    </Button>
+                  </CardContent>
+                </Card>
+
                <PermalinkTools offers={offers} />
             </section>
         
@@ -251,5 +302,7 @@ export default function ScrapeTab({ offers, setOffers, appSettings }: ScrapeTabP
     </Card>
   );
 }
+
+    
 
     
