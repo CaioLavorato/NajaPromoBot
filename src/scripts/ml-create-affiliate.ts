@@ -23,23 +23,27 @@ export async function createAffiliateLinksWithBrowser(urls: string[], tag: strin
     // 2) Extrai o _csrf diretamente dos cookies atuais
     const cookies = await page.cookies();
     const csrfCookie = cookies.find(c => c.name === '_csrf');
+    
+    // Se não encontrar o cookie, tenta navegar para a página de login para estabelecer a sessão.
     if (!csrfCookie) {
-      // Tenta fazer login se o cookie não existir
-      await page.goto('https://www.mercadolivre.com.br/login', { waitUntil: 'networkidle2' });
-      // Neste ponto, em um ambiente local com headless:false, o usuário faria o login.
-      // Em um ambiente de servidor, isso falhará a menos que a sessão já exista em userDataDir.
-      // Damos um tempo para a página de login carregar e para um possível login manual ou automático.
-      await page.waitForTimeout(5000); 
+      console.log('Cookie _csrf não encontrado. Tentando estabelecer sessão...');
+      await page.goto('https://www.mercadolivre.com.br/login', { waitUntil: 'networkidle2', timeout: 120000 });
+      // Aguarda um tempo para um possível login automático ou redirecionamento
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
       // Tenta novamente após a tentativa de login
       const postLoginCookies = await page.cookies();
       const postLoginCsrfCookie = postLoginCookies.find(c => c.name === '_csrf');
 
        if (!postLoginCsrfCookie) {
+         console.error('Falha ao obter cookie _csrf após tentativa de login.');
          return { status: 401, raw: 'Não foi possível localizar cookie _csrf. Sessão provavelmente expirou ou não está logado.' };
        }
        // Se encontrou após o login, continua com o novo cookie
+       console.log('Sessão estabelecida. Prosseguindo com a geração de links.');
        return await performApiCall(page, postLoginCsrfCookie.value, urls, tag);
     }
+    
     const csrf = csrfCookie.value;
 
     // 3) Faz a chamada usando o próprio contexto do navegador
