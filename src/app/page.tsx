@@ -1,10 +1,11 @@
 import MeliAffiliator from '@/app/components/meli-affiliator';
+import { ThemeToggle } from '@/app/components/theme-toggle';
 
 export default function Home() {
   return (
     <main className="container mx-auto p-4 md:p-8">
       <div className="flex flex-col gap-8">
-        <header className="text-center">
+        <header className="relative text-center">
           <h1 className="font-headline text-4xl font-bold tracking-tight lg:text-5xl">
             MeliAffiliator
           </h1>
@@ -12,6 +13,9 @@ export default function Home() {
             Extraia ofertas do Mercado Livre, gerencie links de afiliados e poste no
             WhatsApp.
           </p>
+           <div className="absolute top-0 right-0">
+            <ThemeToggle />
+          </div>
         </header>
         <MeliAffiliator />
       </div>
