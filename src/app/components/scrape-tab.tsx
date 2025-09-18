@@ -31,7 +31,10 @@ const DEFAULT_URLS = [
   "https://www.mercadolivre.com.br/ofertas",
   "https://www.mercadolivre.com.br/ofertas?promotion_type=lightning",
   "https://www.mercadolivre.com.br/ofertas?container_id=MLB100454", // Outlet
-  "https://www.mercadolivre.com.br/ofertas/c/eletronicos-audio-e-video" // Eletrônicos
+  "https://www.mercadolivre.com.br/ofertas/c/eletronicos-audio-e-video", // Eletrônicos
+  "https://www.mercadolivre.com.br/ofertas?container_id=MLB916440-2", // Supermercado
+  "https://www.mercadolivre.com.br/ofertas?container_id=MLB1298579-1", // Menos de 100
+  "https://www.mercadolivre.com.br/ofertas?container_id=MLB1279748-1", // Cupons
 ].join('\n');
 
 function SubmitButton() {
