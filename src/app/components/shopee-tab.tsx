@@ -106,7 +106,6 @@ export default function ShopeeTab({ appSettings }: ShopeeTabProps) {
                         <SelectValue placeholder="Selecione uma categoria" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">Todas as Categorias</SelectItem>
                         {shopeeCategories.map(cat => (
                             <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                         ))}
