@@ -11,18 +11,13 @@ export async function POST(req: NextRequest) {
 
     const token = await getValidAccessToken();
 
-    const body: { urls: string[], tag?: string } = { urls };
-    if (tag) {
-        body.tag = tag;
-    }
-
     const resp = await fetch('https://api.mercadolibre.com/affiliate-program/api/v2/affiliates/createLink', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ urls, tag }),
     });
 
     const data = await resp.json();
