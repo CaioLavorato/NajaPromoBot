@@ -28,8 +28,10 @@ type ScrapeTabProps = {
 };
 
 const DEFAULT_URLS = [
-  "https://www.mercadolivre.com.br/ofertas?container_id=MLB779362-1",
-  "https://www.mercadolivre.com.br/ofertas?container_id=MLB779362-1&promotion_type=lightning",
+  "https://www.mercadolivre.com.br/ofertas",
+  "https://www.mercadolivre.com.br/ofertas?promotion_type=lightning",
+  "https://www.mercadolivre.com.br/ofertas?container_id=MLB100454", // Outlet
+  "https://www.mercadolivre.com.br/ofertas/c/eletronicos-audio-e-video" // Eletrônicos
 ].join('\n');
 
 function SubmitButton() {
