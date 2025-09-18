@@ -53,15 +53,16 @@ export function normalizePermalink(u: string): string {
   if (!u) return u;
   try {
     let url = new URL(u);
-    const originalHash = url.hash;
-
-    // Lida com múltiplos redirecionamentos de clique aninhados
+    
     while (url.hostname.includes('click.mercadolivre.com.br') && url.searchParams.has('url')) {
       const realUrl = url.searchParams.get('url');
       if (realUrl) {
+        // A URL interna pode não ter um hash, então preservamos o da URL original
+        const originalHash = url.hash;
         url = new URL(realUrl);
+        url.hash = url.hash || originalHash; // Mantém o hash se a nova URL não tiver um
       } else {
-        break; // Sai do loop se não houver mais url aninhada
+        break;
       }
     }
     
@@ -72,10 +73,6 @@ export function normalizePermalink(u: string): string {
       }
     }
     url.search = params.toString();
-    
-    // O hash original pode conter informações de rastreamento, mas também de variantes
-    // Se o novo hash estiver vazio, usa o hash original, senão usa o da URL extraída
-    url.hash = url.hash || originalHash;
 
     return url.href;
   } catch {
@@ -169,6 +166,8 @@ function extractResultsFromJson(html: string, baseUrl: string): Offer[] {
                     const price = node.price ? (typeof node.price === 'object' ? node.price.amount : node.price) : null;
                     const price_from = node.original_price || null;
                     
+                    const permalink = normalizePermalink(new URL(node.permalink, baseUrl).href);
+
                     const offer: Offer = {
                         id: node.id || '',
                         headline: '',
@@ -176,11 +175,11 @@ function extractResultsFromJson(html: string, baseUrl: string): Offer[] {
                         price: cleanNum(String(price)),
                         price_from: cleanNum(String(price_from)) ?? '',
                         coupon: '',
-                        permalink: normalizePermalink(new URL(node.permalink, baseUrl).href),
+                        permalink: permalink,
                         image: node.thumbnail || '',
                     };
                     items.push(offer);
-                    seen.add(node.permalink);
+                    seen.add(permalink);
                 }
                 Object.values(node).forEach(walk);
             } else if (Array.isArray(node)) {
