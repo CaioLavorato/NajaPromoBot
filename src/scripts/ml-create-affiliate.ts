@@ -1,4 +1,3 @@
-import puppeteer from 'puppeteer-core';
 import chromium from 'chrome-aws-lambda';
 
 type CreateLinkResult = {
@@ -8,14 +7,18 @@ type CreateLinkResult = {
 };
 
 export async function createAffiliateLinksWithBrowser(urls: string[], tag: string): Promise<CreateLinkResult> {
-  const browser = await puppeteer.launch({
-    args: chromium.args,
-    executablePath: await chromium.executablePath || undefined,
-    headless: chromium.headless,
-  });
-  const page = await browser.newPage();
-
+  let browser = null;
   try {
+    browser = await chromium.puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath,
+      headless: chromium.headless,
+      ignoreHTTPSErrors: true,
+    });
+
+    const page = await browser.newPage();
+    
     // 1) Abra a página do LinkBuilder 
     await page.goto('https://www.mercadolivre.com.br/afiliados/linkbuilder', { waitUntil: 'networkidle2', timeout: 120000 });
 
@@ -49,11 +52,13 @@ export async function createAffiliateLinksWithBrowser(urls: string[], tag: strin
     return await performApiCall(page, csrf, urls, tag);
 
   } finally {
-    await browser.close();
+    if (browser) {
+      await browser.close();
+    }
   }
 }
 
-async function performApiCall(page: puppeteer.Page, csrf: string, urls: string[], tag: string): Promise<CreateLinkResult> {
+async function performApiCall(page: import('puppeteer-core').Page, csrf: string, urls: string[], tag: string): Promise<CreateLinkResult> {
     const payload = { urls, tag };
     const result = await page.evaluate(async (payload, csrf) => {
       const resp = await fetch('https://www.mercadolivre.com.br/affiliate-program/api/v2/affiliates/createLink', {
