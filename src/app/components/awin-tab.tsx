@@ -49,26 +49,62 @@ export default function AwinTab({ appSettings }: AwinTabProps) {
     }
   });
   
-  const handleSendToWhatsApp = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (offers.length === 0) {
-      toast({ variant: 'destructive', title: 'Nenhuma oferta para enviar' });
-      return;
-    }
-     if (!appSettings.whapiToken || appSettings.whapiSelectedGroups.length === 0) {
-      toast({ variant: 'destructive', title: 'WhatsApp Não Configurado', description: 'Por favor, configure seu Token e selecione ao menos um grupo na aba de Configurações.'});
-      return;
-    }
-    
-    startWhatsAppTransition(async () => {
-      const result = await sendAwinToWhatsAppAction(offers, appSettings);
-      if (result.success) {
+const handleSendToWhatsApp = async (event: React.FormEvent<HTMLFormElement>) => {
+  event.preventDefault();
+
+  if (offers.length === 0) {
+    toast({ variant: 'destructive', title: 'Nenhuma oferta para enviar' });
+    return;
+  }
+  if (!appSettings.whapiToken || appSettings.whapiSelectedGroups.length === 0) {
+    toast({
+      variant: 'destructive',
+      title: 'WhatsApp Não Configurado',
+      description: 'Por favor, configure seu Token e selecione ao menos um grupo na aba de Configurações.',
+    });
+    return;
+  }
+
+  // ---- Controle de frequência (evita bloqueio por "última postagem ausente") ----
+  const storedLast =
+    typeof window !== 'undefined' ? window.localStorage.getItem('whapi:lastPostedAt') || '' : '';
+  const fallback6h = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+
+  const enhancedSettings = {
+    ...appSettings,
+    whapiLastPostedAt: storedLast || fallback6h,
+    whapiMinCooldown: appSettings.whapiMinCooldown ?? 30, // minutos
+    whapiForce: appSettings.whapiForce ?? false,          // true para forçar envio ignorando bloqueio
+  };
+  // -----------------------------------------------------------------------------
+
+  startWhatsAppTransition(async () => {
+    try {
+      const result = await sendAwinToWhatsAppAction(offers, enhancedSettings);
+
+      if (result?.success) {
+        // persiste “última postagem” para próximas checagens
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('whapi:lastPostedAt', new Date().toISOString());
+        }
         toast({ title: 'Sucesso', description: result.message });
       } else {
-        toast({ variant: 'destructive', title: 'Falha no WhatsApp', description: result.message });
+        toast({
+          variant: 'destructive',
+          title: 'Falha no WhatsApp',
+          description: result?.message ?? 'Não foi possível enviar as ofertas.',
+        });
       }
-    });
-  };
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro inesperado',
+        description: err?.message || 'Ocorreu um erro desconhecido ao enviar para o WhatsApp.',
+      });
+    }
+  });
+};
+
 
   const formatCurrency = (value: number | null | undefined) => {
     if (value === null || typeof value === 'undefined') return '-';

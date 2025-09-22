@@ -77,45 +77,101 @@ export default function AmazonTab({ appSettings }: AmazonTabProps) {
     }
   });
   
-  const handleSendToWhatsApp = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (products.length === 0) {
-      toast({ variant: 'destructive', title: 'Nenhum produto para enviar' });
-      return;
-    }
-     if (!appSettings.whapiToken || appSettings.whapiSelectedGroups.length === 0) {
-      toast({ variant: 'destructive', title: 'WhatsApp Não Configurado', description: 'Por favor, configure seu Token e selecione ao menos um grupo na aba de Configurações.'});
-      return;
-    }
+const handleSendToWhatsApp = async (event: React.FormEvent<HTMLFormElement>) => {
+  event.preventDefault();
 
-    const offers: Offer[] = products.map(p => ({
-        id: p.ASIN,
-        headline: '',
-        title: p.ItemInfo.Title.DisplayValue,
-        price: p.Offers?.Listings[0]?.Price?.Amount ?? null,
-        price_from: p.Offers?.Listings[0]?.Saving?.DisplayAmount ? (p.Offers.Listings[0].Price.Amount / (1 - (p.Offers.Listings[0].Saving.Percentage / 100))) : '',
-        coupon: '',
-        permalink: p.DetailPageURL,
-        image: p.Images.Primary.Large.URL,
-        discount_pct: p.Offers?.Listings[0]?.Saving?.Percentage,
-        advertiser_name: 'Amazon',
-    }));
-
-    const formData = new FormData();
-    formData.append('whapiToken', appSettings.whapiToken);
-    formData.append('whapiGroupIds', JSON.stringify(appSettings.whapiSelectedGroups.map(g => g.id)));
-    formData.append('whapiInterval', String(appSettings.whapiInterval));
-    formData.append('whapiSendLimit', String(appSettings.whapiSendLimit));
-    
-    startWhatsAppTransition(async () => {
-      const result = await sendToWhatsAppAction(offers, formData);
-      if (result.success) {
-        toast({ title: 'Sucesso', description: result.message });
-      } else {
-        toast({ variant: 'destructive', title: 'Falha no WhatsApp', description: result.message });
-      }
+  if (products.length === 0) {
+    toast({ variant: 'destructive', title: 'Nenhum produto para enviar' });
+    return;
+  }
+  if (!appSettings.whapiToken || appSettings.whapiSelectedGroups.length === 0) {
+    toast({
+      variant: 'destructive',
+      title: 'WhatsApp Não Configurado',
+      description: 'Por favor, configure seu Token e selecione ao menos um grupo na aba de Configurações.',
     });
+    return;
+  }
+
+  // helpers locais
+  const toNumber = (v: any): number | null => {
+    if (v === null || v === undefined) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
   };
+  const safePct = (v: any): number | null => {
+    const n = toNumber(v);
+    if (n === null) return null;
+    if (!Number.isFinite(n)) return null;
+    return Math.max(0, Math.min(100, n));
+  };
+
+  // monta as offers (Amazon)
+  const offers: Offer[] = products.map((p) => {
+    const price = toNumber(p?.Offers?.Listings?.[0]?.Price?.Amount); // preço atual
+
+    // % de economia (se existir)
+    const pctFromApi = safePct(p?.Offers?.Listings?.[0]?.Saving?.Percentage);
+
+    // preço original calculado de forma segura
+    let price_from: number | '' = '';
+    if (price !== null && pctFromApi !== null && pctFromApi > 0 && pctFromApi < 100) {
+      const denom = 1 - pctFromApi / 100;
+      if (denom > 0) {
+        price_from = Math.round((price / denom) * 100) / 100;
+      }
+    }
+
+    // desconto final coerente (prefere o da API, senão calcula)
+    let discount_pct: number | undefined = undefined;
+    if (pctFromApi !== null) {
+      discount_pct = Math.round(pctFromApi);
+    } else if (price_from !== '' && price !== null && price_from > price && price_from > 0) {
+      discount_pct = Math.round(((price_from - price) / price_from) * 100);
+    }
+
+    return {
+      id: p.ASIN,
+      headline: '',
+      title: p?.ItemInfo?.Title?.DisplayValue ?? '',
+      price,                         // number | null
+      price_from,                    // number | '' (o backend lida com isso)
+      coupon: '',
+      permalink: p?.DetailPageURL ?? '',
+      image: p?.Images?.Primary?.Large?.URL ?? '',
+      discount_pct,                  // number | undefined
+      advertiser_name: 'Amazon',
+    } as Offer;
+  });
+
+  // formData básico
+  const formData = new FormData();
+  formData.append('whapiToken', appSettings.whapiToken);
+  formData.append('whapiGroupIds', JSON.stringify(appSettings.whapiSelectedGroups.map((g) => g.id)));
+  formData.append('whapiInterval', String(appSettings.whapiInterval));
+  formData.append('whapiSendLimit', String(appSettings.whapiSendLimit));
+
+  // 👇 Controle de frequência (evita bloqueio por “ausente”)
+  const storedLast = typeof window !== 'undefined' ? window.localStorage.getItem('whapi:lastPostedAt') || '' : '';
+  const fallback6h = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+  formData.append('whapiLastPostedAt', storedLast || fallback6h);
+  formData.append('whapiMinCooldown', String(appSettings.whapiMinCooldown ?? 30));
+  formData.append('whapiForce', String(appSettings.whapiForce ?? false));
+
+  startWhatsAppTransition(async () => {
+    const result = await sendToWhatsAppAction(offers, formData);
+    if (result.success) {
+      // persiste a “última postagem” para a próxima checagem
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('whapi:lastPostedAt', new Date().toISOString());
+      }
+      toast({ title: 'Sucesso', description: result.message });
+    } else {
+      toast({ variant: 'destructive', title: 'Falha no WhatsApp', description: result.message });
+    }
+  });
+};
+
 
   return (
     <Card>

@@ -70,46 +70,114 @@ export default function ShopeeTab({ appSettings }: ShopeeTabProps) {
     }
   });
   
-  const handleSendToWhatsApp = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+const handleSendToWhatsApp = async (event: React.FormEvent<HTMLFormElement>) => {
+  event.preventDefault();
 
-    if (products.length === 0) {
-      toast({ variant: 'destructive', title: 'Nenhum produto para enviar' });
-      return;
+  if (products.length === 0) {
+    toast({ variant: 'destructive', title: 'Nenhum produto para enviar' });
+    return;
+  }
+  if (!appSettings.whapiToken || appSettings.whapiSelectedGroups.length === 0) {
+    toast({
+      variant: 'destructive',
+      title: 'WhatsApp Não Configurado',
+      description: 'Por favor, configure seu Token e selecione ao menos um grupo na aba de Configurações.',
+    });
+    return;
+  }
+
+  // Helpers seguros
+  const toNumber = (v: any): number | null => {
+    if (v === null || v === undefined) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  const clamp = (n: number, min = 0, max = 100) => Math.max(min, Math.min(max, n));
+
+  // Monta as offers a partir dos produtos da Shopee
+  const offers: Offer[] = products.map((p) => {
+    const price = toNumber(p?.price_info?.current_price);
+    const orig  = toNumber(p?.price_info?.original_price);
+
+    // discount_rate geralmente vem 0~1; converte para % quando existir
+    const rate = toNumber(p?.price_info?.discount_rate); // pode ser 0~1, 0~100, null
+    let pctFromApi: number | null = null;
+    if (rate !== null) {
+      pctFromApi = rate <= 1 ? rate * 100 : rate; // aceita 0~1 ou 0~100
+      pctFromApi = clamp(Math.round(pctFromApi));
     }
-     if (!appSettings.whapiToken || appSettings.whapiSelectedGroups.length === 0) {
-      toast({ variant: 'destructive', title: 'WhatsApp Não Configurado', description: 'Por favor, configure seu Token e selecione ao menos um grupo na aba de Configurações.'});
-      return;
+
+    // preço de/por coerente (mantemos números; o flow já formata)
+    let price_from: number | '' = '';
+    if (orig !== null && orig > 0) price_from = orig;
+
+    // Se não houver original mas temos % e price, reconstruímos
+    if (price_from === '' && price !== null && pctFromApi !== null && pctFromApi > 0 && pctFromApi < 100) {
+      const denom = 1 - pctFromApi / 100;
+      if (denom > 0) {
+        price_from = Math.round((price / denom) * 100) / 100;
+      }
     }
 
-    const offers: Offer[] = products.map(p => ({
-        id: String(p.item_id),
-        headline: '',
-        title: p.item_name,
-        price: p.price_info.current_price,
-        price_from: p.price_info.original_price,
-        coupon: '',
-        permalink: p.affiliate_link,
-        image: p.image_url,
-        discount_pct: Math.round(p.price_info.discount_rate * 100),
-        advertiser_name: 'Shopee',
-    }));
+    // Desconto final: prefere API; senão calcula de price_from/price
+    let discount_pct: number | undefined = undefined;
+    if (pctFromApi !== null) {
+      discount_pct = pctFromApi;
+    } else if (price_from !== '' && price !== null && price_from > price && price_from > 0) {
+      discount_pct = clamp(Math.round(((price_from - price) / price_from) * 100));
+    }
 
-    const formData = new FormData();
-    formData.append('whapiToken', appSettings.whapiToken);
-    formData.append('whapiGroupIds', JSON.stringify(appSettings.whapiSelectedGroups.map(g => g.id)));
-    formData.append('whapiInterval', String(appSettings.whapiInterval));
-    formData.append('whapiSendLimit', String(appSettings.whapiSendLimit));
-    
-    startWhatsAppTransition(async () => {
+    return {
+      id: String(p?.item_id ?? ''),
+      headline: '',
+      title: p?.item_name ?? '',
+      price,                              // number | null
+      price_from,                         // number | '' (flow sabe lidar)
+      coupon: '',
+      permalink: p?.affiliate_link ?? '',
+      image: p?.image_url ?? '',
+      discount_pct,                       // number | undefined
+      advertiser_name: 'Shopee',
+    } as Offer;
+  });
+
+  // FormData básico
+  const formData = new FormData();
+  formData.append('whapiToken', appSettings.whapiToken);
+  formData.append('whapiGroupIds', JSON.stringify(appSettings.whapiSelectedGroups.map((g) => g.id)));
+  formData.append('whapiInterval', String(appSettings.whapiInterval));
+  formData.append('whapiSendLimit', String(appSettings.whapiSendLimit));
+
+  // 👇 CONTROLE DE FREQUÊNCIA: evita bloqueio por “última postagem ausente”
+  const storedLast =
+    typeof window !== 'undefined' ? window.localStorage.getItem('whapi:lastPostedAt') || '' : '';
+  const fallback6h = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+  formData.append('whapiLastPostedAt', storedLast || fallback6h);
+  formData.append('whapiMinCooldown', String(appSettings.whapiMinCooldown ?? 30)); // minutos
+  formData.append('whapiForce', String(appSettings.whapiForce ?? false)); // true para forçar envio
+
+  startWhatsAppTransition(async () => {
+    try {
       const result = await sendToWhatsAppAction(offers, formData);
       if (result.success) {
+        // Persiste “última postagem” para as próximas checagens
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('whapi:lastPostedAt', new Date().toISOString());
+        }
         toast({ title: 'Sucesso', description: result.message });
       } else {
         toast({ variant: 'destructive', title: 'Falha no WhatsApp', description: result.message });
       }
-    });
-  };
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro inesperado',
+        description: err?.message || 'Ocorreu um erro desconhecido ao enviar para o WhatsApp.',
+      });
+    }
+  });
+};
+
 
   return (
     <Card>

@@ -1,3 +1,4 @@
+'use client';
 
 import { useState } from 'react';
 import Image from 'next/image';
@@ -25,14 +26,29 @@ type DataTableProps = {
 export default function DataTable({ offers, onUpdateOffer, onDeleteOffer }: DataTableProps) {
   const [editState, setEditState] = useState<Partial<Offer>>({});
 
-  const formatCurrency = (value: number | null | undefined) => {
-    if (value === null || typeof value === 'undefined') return '-';
+  // --- utils de números/moeda (blindados contra NaN) ---
+  // aceita "R$ 1.234,56", "1234.56", "  1.234 ,56  ", etc.
+  const parseMoney = (v: unknown): number | null => {
+    if (v === null || v === undefined) return null;
+    const s = String(v).trim().replace(/\s+/g, '').replace(/[R$\u00A0]/g, '');
+    // se termina com ",dd", trata como BR
+    const normalized = /,\d{2}$/.test(s)
+      ? s.replace(/\./g, '').replace(',', '.')
+      : s.replace(/[^0-9.-]/g, '');
+    const n = parseFloat(normalized);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const formatCurrency = (value: unknown) => {
+    const n = parseMoney(value);
+    if (n === null) return '—';
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
-    }).format(value);
+    }).format(n);
   };
 
+  // --- handlers de edição ---
   const handleEdit = (offer: Offer, index: number) => {
     onUpdateOffer(index, { ...offer, editing: true });
     setEditState(offer);
@@ -44,16 +60,22 @@ export default function DataTable({ offers, onUpdateOffer, onDeleteOffer }: Data
   };
 
   const handleSave = (index: number) => {
-    onUpdateOffer(index, { ...editState as Offer, editing: false });
+    onUpdateOffer(index, { ...(editState as Offer), editing: false });
     setEditState({});
   };
-  
+
   const handleInputChange = (field: keyof Offer, value: string) => {
-      let parsedValue: string | number | null = value;
-      if (field === 'price' || field === 'price_from') {
-          parsedValue = value ? parseFloat(value.replace(',', '.')) : null;
-      }
-      setEditState(prev => ({ ...prev, [field]: parsedValue }));
+    let parsed: any = value;
+
+    if (field === 'price' || field === 'price_from') {
+      const n = parseMoney(value);
+      parsed = n === null ? null : n;
+    } else if (field === 'discount_pct') {
+      const n = parseInt(value, 10);
+      parsed = Number.isFinite(n) ? n : null;
+    }
+
+    setEditState(prev => ({ ...prev, [field]: parsed }));
   };
 
   const renderCell = (offer: Offer, index: number) => {
@@ -64,72 +86,87 @@ export default function DataTable({ offers, onUpdateOffer, onDeleteOffer }: Data
             <Textarea
               className="h-16 w-32 text-xs"
               placeholder="URL da Imagem"
-              value={editState.image}
+              value={editState.image ?? ''}
               onChange={e => handleInputChange('image', e.target.value)}
             />
           </TableCell>
+
           <TableCell>
             <Input
               placeholder="Chamada..."
-              value={editState.headline}
+              value={editState.headline ?? ''}
               onChange={e => handleInputChange('headline', e.target.value)}
             />
           </TableCell>
+
           <TableCell>
             <Textarea
               placeholder="Título do Produto"
-              value={editState.title}
+              value={editState.title ?? ''}
               onChange={e => handleInputChange('title', e.target.value)}
             />
           </TableCell>
+
           <TableCell className="text-right">
             <Input
               className="w-20 text-right"
               type="number"
               placeholder="%"
-              value={editState.discount_pct || ''}
+              value={editState.discount_pct ?? ''}
               onChange={e => handleInputChange('discount_pct', e.target.value)}
             />
           </TableCell>
+
           <TableCell className="text-right">
+            {/* text para permitir vírgula/ponto; parse acontece em handleInputChange */}
             <Input
               className="w-28 text-right"
               placeholder="0,00"
-              value={String(editState.price_from || '')}
+              value={editState.price_from ?? ''}
               onChange={e => handleInputChange('price_from', e.target.value)}
             />
           </TableCell>
+
           <TableCell className="text-right">
-             <Input
+            <Input
               className="w-28 text-right font-semibold"
               placeholder="0,00"
-              value={String(editState.price || '')}
+              value={editState.price ?? ''}
               onChange={e => handleInputChange('price', e.target.value)}
             />
           </TableCell>
+
           <TableCell>
             <Input
               className="w-24"
               placeholder="Cupom"
-              value={editState.coupon}
+              value={editState.coupon ?? ''}
               onChange={e => handleInputChange('coupon', e.target.value)}
             />
           </TableCell>
-           <TableCell>
+
+          <TableCell>
             <Textarea
               className="h-16 w-32 text-xs"
               placeholder="Permalink"
-              value={editState.permalink}
+              value={editState.permalink ?? ''}
               onChange={e => handleInputChange('permalink', e.target.value)}
             />
           </TableCell>
+
           <TableCell className="flex gap-2">
-            <Button size="icon" onClick={() => handleSave(index)}><Save /></Button>
-            <Button size="icon" variant="ghost" onClick={() => handleCancel(offer, index)}><X /></Button>
+            <Button size="icon" onClick={() => handleSave(index)}>
+              <Save />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={() => handleCancel(offer, index)}>
+              <X />
+            </Button>
           </TableCell>
         </TableRow>
       );
     }
+
+    const hasPriceFrom = parseMoney(offer.price_from) !== null;
 
     return (
       <TableRow key={`${offer.id}-${index}`}>
@@ -141,7 +178,7 @@ export default function DataTable({ offers, onUpdateOffer, onDeleteOffer }: Data
               width={64}
               height={64}
               className="rounded-md object-cover"
-              unoptimized // As image sources are external and can change
+              unoptimized
             />
           ) : (
             <div className="h-16 w-16 rounded-md bg-muted flex items-center justify-center text-muted-foreground">
@@ -149,28 +186,35 @@ export default function DataTable({ offers, onUpdateOffer, onDeleteOffer }: Data
             </div>
           )}
         </TableCell>
+
         <TableCell className="font-medium font-headline">{offer.headline}</TableCell>
+
         <TableCell className="max-w-xs truncate">{offer.title}</TableCell>
+
         <TableCell className="text-right">
           {offer.discount_pct && offer.discount_pct > 0 ? (
             <Badge variant="destructive">{offer.discount_pct}% OFF</Badge>
           ) : (
-            '-'
+            '—'
           )}
         </TableCell>
-        <TableCell className="text-right line-through text-muted-foreground">
-          {formatCurrency(
-            typeof offer.price_from === 'string'
-              ? parseFloat(offer.price_from)
-              : offer.price_from
+
+        <TableCell className="text-right text-muted-foreground">
+          {hasPriceFrom ? (
+            <span className="line-through">{formatCurrency(offer.price_from)}</span>
+          ) : (
+            '—'
           )}
         </TableCell>
+
         <TableCell className="text-right font-semibold">
           {formatCurrency(offer.price)}
         </TableCell>
+
         <TableCell>
-            {offer.coupon ? <Badge>{offer.coupon}</Badge> : '-'}
+          {offer.coupon ? <Badge>{offer.coupon}</Badge> : '—'}
         </TableCell>
+
         <TableCell>
           <a
             href={offer.permalink}
@@ -182,13 +226,14 @@ export default function DataTable({ offers, onUpdateOffer, onDeleteOffer }: Data
             Ver
           </a>
         </TableCell>
-         <TableCell className="flex gap-2">
-            <Button size="icon" variant="outline" onClick={() => handleEdit(offer, index)}>
-                <Edit />
-            </Button>
-            <Button size="icon" variant="destructive" onClick={() => onDeleteOffer(index)}>
-                <Trash2 />
-            </Button>
+
+        <TableCell className="flex gap-2">
+          <Button size="icon" variant="outline" onClick={() => handleEdit(offer, index)}>
+            <Edit />
+          </Button>
+          <Button size="icon" variant="destructive" onClick={() => onDeleteOffer(index)}>
+            <Trash2 />
+          </Button>
         </TableCell>
       </TableRow>
     );

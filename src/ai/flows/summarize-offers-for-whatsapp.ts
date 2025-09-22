@@ -1,17 +1,12 @@
-
 // src/ai/flows/summarize-offers-for-whatsapp.ts
 'use server';
 
 /**
- * @fileOverview Summarizes scraped offers and posts them to a WhatsApp group via the Whapi API.
- *
- * - summarizeOffersForWhatsApp - A function that summarizes offers and sends them to WhatsApp.
- * - SummarizeOffersInput - The input type for the summarizeOffersForWhatsApp function.
- * - SummarizeOffersOutput - The return type for the summarizeOffersForWhatsApp function.
+ * Summarizes scraped offers and posts them to a WhatsApp group via the Whapi API.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const SummarizeOffersInputSchema = z.object({
   offers: z.array(
@@ -24,137 +19,193 @@ const SummarizeOffersInputSchema = z.object({
       coupon: z.string().optional(),
       permalink: z.string(),
       image: z.string().optional(),
-      advertiser_name: z.string().optional(), // Para Awin
+      advertiser_name: z.string().optional(),
+      // derivados/preparados (preenchidos no flow)
+      price_from_fmt: z.string().optional(),
+      price_fmt: z.string().optional(),
+      has_price_from: z.boolean().optional(),
+      has_price: z.boolean().optional(),
+      discount_pct: z.number().optional(),
+      discount_label: z.string().optional(),
     })
-  ).describe('Um array de objetos de oferta para resumir e enviar para o WhatsApp.'),
-  whapiGroupId: z.string().describe('O ID do grupo do WhatsApp para enviar as ofertas.'),
-  whapiToken: z.string().describe('O token para a API Whapi.'),
+  ),
+  whapiGroupId: z.string(),
+  whapiToken: z.string(),
 });
 export type SummarizeOffersInput = z.infer<typeof SummarizeOffersInputSchema>;
 
 const SummarizeOffersOutputSchema = z.object({
-  success: z.boolean().describe('Se as ofertas foram enviadas com sucesso para o WhatsApp.'),
-  message: z.string().describe('Uma mensagem indicando o status da postagem no WhatsApp.'),
+  success: z.boolean(),
+  message: z.string(),
 });
 export type SummarizeOffersOutput = z.infer<typeof SummarizeOffersOutputSchema>;
 
-
+/** ------------------------------------------------------------------ */
+/** Tool: envia imagem + legenda para um grupo usando Whapi (GATE host) */
+/** ------------------------------------------------------------------ */
 const postMediaToWhatsApp = ai.defineTool(
-    {
-        name: 'postMediaToWhatsApp',
-        description: 'Posta uma imagem com legenda em um grupo do WhatsApp usando a API Whapi.',
-        inputSchema: z.object({
-            groupId: z.string().describe('O ID do grupo do WhatsApp.'),
-            imageUrl: z.string().describe('A URL da imagem a ser enviada.'),
-            caption: z.string().describe('A legenda da imagem.'),
-            token: z.string().describe('O token da API Whapi.'),
+  {
+    name: 'postMediaToWhatsApp',
+    description: 'Posta uma imagem com legenda em um grupo do WhatsApp usando a API Whapi.',
+    inputSchema: z.object({
+      groupId: z.string(),
+      imageUrl: z.string().optional(),   // opcional — não envie null
+      caption: z.string(),
+      token: z.string(),
+    }),
+    outputSchema: z.boolean(),
+  },
+  async (input) => {
+    const { groupId, imageUrl, caption, token } = input;
+
+    async function sendImage(urlAs: 'string' | 'object'): Promise<{ ok: boolean; body?: string }> {
+      const apiUrl = `https://gate.whapi.cloud/messages/image`;
+      const mediaPayload = urlAs === 'string' ? imageUrl : (imageUrl ? { link: imageUrl } : undefined);
+
+      const resp = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          to: groupId,
+          ...(imageUrl ? { media: mediaPayload } : {}),
+          caption,
         }),
-        outputSchema: z.boolean(),
-    },
-    async (input) => {
-        const { groupId, imageUrl, caption, token } = input;
-        const apiUrl = `https://whapi.cloud/api/v2/messages/image`;
+      });
 
+      const body = await resp.text();
+      const ct = resp.headers.get('content-type') || '';
+
+      if (!resp.ok) return { ok: false, body };
+      if (ct.includes('application/json')) {
         try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    to: groupId,
-                    media: imageUrl,
-                    caption: caption,
-                }),
-            });
-
-            if (!response.ok) {
-                const errorBody = await response.text();
-                console.error(`Erro na API Whapi: ${response.status} ${response.statusText}`, errorBody);
-                return false;
-            }
-
-            const data = await response.json();
-            console.log('Resposta da API Whapi:', data);
-
-            return data.sent === true || data.status === 'sent';
-
-        } catch (error) {
-            console.error('Erro ao postar no WhatsApp:', error);
-            return false;
+          const data = JSON.parse(body);
+          const sent =
+            data?.sent === true ||
+            data?.status === 'sent' ||
+            data?.success === true ||
+            data?.message_id != null;
+          return { ok: !!sent, body };
+        } catch {
+          // 200 mas sem JSON – geralmente OK
+          return { ok: true, body };
         }
+      }
+      // 200 sem JSON – considerar OK
+      return { ok: true, body };
     }
+
+    async function sendText(): Promise<{ ok: boolean; body?: string }> {
+      const apiUrl = `https://gate.whapi.cloud/messages/text`;
+      const resp = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          to: groupId,
+          body: caption,
+        }),
+      });
+      const body = await resp.text();
+      if (!resp.ok) return { ok: false, body };
+      return { ok: true, body };
+    }
+
+    try {
+      // Se não tem imagem, manda texto direto
+      if (!imageUrl) {
+        const t = await sendText();
+        if (!t.ok) console.error('Whapi TEXT fail:', t.body?.slice(0, 400));
+        return t.ok;
+      }
+
+      // Tenta imagem com media:string
+      const r1 = await sendImage('string');
+      if (r1.ok) return true;
+
+      // Se falhou, tenta formato {link: ...}
+      const r2 = await sendImage('object');
+      if (r2.ok) return true;
+
+      // Fallback final: texto
+      const t = await sendText();
+      if (!t.ok) {
+        console.error('Whapi IMAGE fail #1:', r1.body?.slice(0, 400));
+        console.error('Whapi IMAGE fail #2:', r2.body?.slice(0, 400));
+        console.error('Whapi TEXT fail:', t.body?.slice(0, 400));
+      }
+      return t.ok;
+    } catch (err) {
+      console.error('postMediaToWhatsApp exception:', err);
+      return false;
+    }
+  }
 );
 
+/** ---------------------------------------------- */
+/** Prompt (sem helpers): com preço original riscado (~) */
+/** ---------------------------------------------- */
 const summarizeOffersPrompt = ai.definePrompt({
   name: 'summarizeOffersPrompt',
-  input: {schema: SummarizeOffersInputSchema},
-  output: {schema: SummarizeOffersOutputSchema},
+  input: { schema: SummarizeOffersInputSchema },
+  output: { schema: z.any() },
   tools: [postMediaToWhatsApp],
-  prompt: `Você é um assistente de IA especialista em criar mensagens de ofertas para o WhatsApp.
+  prompt: `Você é um assistente de IA que vai ENVIAR CADA OFERTA separadamente no formato exato abaixo, respeitando quebras de linha e negritos do WhatsApp (asteriscos) e usando riscado com "~" no preço original.
 
-Para CADA oferta na lista fornecida, você deve executar as seguintes tarefas:
-1.  Formatar uma mensagem de legenda (caption) que seja atrativa e siga estritamente o formato do exemplo abaixo.
-2.  Chamar a ferramenta 'postMediaToWhatsApp' para enviar a imagem do produto junto com a legenda formatada para o grupo de WhatsApp especificado.
+Para cada item em "offers":
+- Monte a legenda exatamente neste formato:
 
-Aqui estão as informações das ofertas:
-{{#each offers}}
-- Imagem: {{image}}
-  Título: {{title}}
-  Chamada: {{headline}}
-  Preço Original: R$ {{#if (isNumber price_from)}}{{price_from}}{{else}}0{{/if}}
-  Preço com Desconto: R$ {{#if price}}{{price}}{{else}}0{{/if}}
-  Cupom: {{coupon}}
-  Desconto: {{#discount price_from price}}{{/discount}}%
-  Achado em: {{#if advertiser_name}}{{advertiser_name}}{{else}}Mercado Livre{{/if}}
-  Link: {{permalink}}
-{{/each}}
+*{{headline}}*
 
-Use a ferramenta 'postMediaToWhatsApp' para CADA oferta.
-- O 'groupId' é {{{whapiGroupId}}}.
-- O 'token' é {{{whapiToken}}}.
-- A 'imageUrl' é o campo 'image' da oferta.
-- O 'caption' é a mensagem que você vai formatar.
+{{title}}
 
----
-EXEMPLO DE FORMATAÇÃO DA LEGENDA (CAPTION):
-{{{headline}}}
+{{#if has_price_from}}De: ~R$ {{price_from_fmt}}~ | {{/if}}Por: *R$ {{price_fmt}}* 🔥{{#if has_price_from}} ({{discount_label}} ⬇️){{/if}}
 
-{{{title}}}
+Achado na *{{#if advertiser_name}}{{advertiser_name}}{{else}}Mercado Livre{{/if}}* ⚡
 
-{{#if coupon}}
-Use o cupom: *{{{coupon}}}* 🎟️
-{{/if}}
+{{permalink}}
 
-De: R$ {{{formatCurrency price_from}}} | Por: R$ {{{formatCurrency price}}} 🔥 ({{#discount price_from price}}{{/discount}}% ⬇️)
-
-Achado na {{#if advertiser_name}}{{{advertiser_name}}}{{else}}Mercado Livre{{/if}} ⚡️
-{{{permalink}}}
----
-
-Certifique-se de calcular o desconto e formatar os preços corretamente. Chame a ferramenta para cada oferta individualmente. Se não houver ofertas, retorne uma mensagem de sucesso indicando que nada foi feito.
+- Em seguida, chame a ferramenta postMediaToWhatsApp com:
+  - groupId = {{{whapiGroupId}}}
+  - token   = {{{whapiToken}}}
+  - imageUrl = o campo "image" (se ausente, ainda envie a legenda)
+  - caption  = a legenda acima
 `,
-  helpers: {
-    discount: (price_from: string | number, price: number | null) => {
-      if (!price_from || !price) return 0;
-      const p0 = parseFloat(String(price_from));
-      const p1 = parseFloat(String(price));
-      if (isNaN(p0) || isNaN(p1) || p0 <= p1) {
-        return 0;
-      }
-      return Math.round(((p0 - p1) / p0) * 100);
-    },
-    formatCurrency: (value: string | number | null | undefined) => {
-        if (value === null || typeof value === 'undefined') return '0,00';
-        const num = parseFloat(String(value));
-        if (isNaN(num)) return '0,00';
-        return num.toFixed(2).replace('.', ',');
-    },
-    isNumber: (value: any) => typeof value === 'number'
-  },
 });
 
+/** Utils para preparar números/formatos com robustez */
+function toNumber(v: string | number | null | undefined): number | null {
+  if (v === null || v === undefined) return null;
+  // aceita "1.234,56" e "1234.56"
+  const s = String(v).trim().replace(/\s+/g, '');
+  const normalized =
+    /,\d{2}$/.test(s) // termina com ",dd" -> formato BR
+      ? s.replace(/\./g, '').replace(',', '.')
+      : s.replace(/[^0-9.-]/g, '');
+  const n = parseFloat(normalized);
+  return Number.isFinite(n) ? n : null;
+}
+function fmtBRL(n: number | null): string {
+  if (n === null || !Number.isFinite(n)) return '0,00';
+  const rounded = Math.round(n * 100) / 100;
+  return rounded.toFixed(2).replace('.', ',');
+}
+function calcDiscount(p0: number | null, p1: number | null): number {
+  if (!p0 || !p1 || p0 <= 0 || p1 <= 0 || p0 <= p1) return 0;
+  return Math.round(((p0 - p1) / p0) * 100);
+}
+function validImageUrl(u?: string | null): string | undefined {
+  if (!u) return undefined;
+  const s = String(u).trim();
+  if (!/^https?:\/\//i.test(s)) return undefined; // exige http/https público
+  return s;
+}
 
 export async function summarizeOffersForWhatsApp(input: SummarizeOffersInput): Promise<SummarizeOffersOutput> {
   return summarizeOffersForWhatsAppFlow(input);
@@ -171,37 +222,120 @@ const summarizeOffersForWhatsAppFlow = ai.defineFlow(
       return { success: true, message: 'Nenhuma oferta para enviar.' };
     }
 
-    const { toolRequests } = await summarizeOffersPrompt(input);
-    
-    let sentCount = 0;
-    const totalRequests = toolRequests.length;
+    // PREPARO: evita NaN e decide quando mostrar "De: ... |"
+    const preparedOffers = input.offers.map((o) => {
+      const p0 = toNumber(o.price_from ?? null);
+      const p1 = toNumber(o.price ?? null);
 
-    for (let i = 0; i < totalRequests; i++) {
-        const toolRequest = toolRequests[i];
+      const has_price_from = p0 !== null && p0 > 0;
+      const has_price = p1 !== null && p1 > 0;
+
+      const price_from_fmt = has_price_from ? fmtBRL(p0) : '0,00';
+      const price_fmt = has_price ? fmtBRL(p1) : '0,00';
+
+      const discount_pct = has_price_from && has_price ? calcDiscount(p0, p1) : 0;
+      const discount_label = discount_pct > 0 ? `${discount_pct}%` : '-';
+
+      return {
+        ...o,
+        headline: o.headline?.trim() || 'OFERTA 🔥',
+        has_price_from,
+        has_price,
+        price_from_fmt,
+        price_fmt,
+        discount_pct,
+        discount_label,
+      };
+    });
+
+    const resp = await summarizeOffersPrompt({
+      ...input,
+      offers: preparedOffers,
+    });
+
+    const toolRequests: Array<{ toolRequest: { name: string; input?: any } }> =
+      Array.isArray((resp as any)?.toolRequests) ? (resp as any).toolRequests : [];
+
+    let sentCount = 0;
+
+    if (toolRequests.length > 0) {
+      // Caminho normal: executar toolRequests gerados pelo LLM
+      for (let i = 0; i < toolRequests.length; i++) {
+        const tr = toolRequests[i];
+
         if (streamingCallback) {
           streamingCallback({
             index: i + 1,
-            total: totalRequests,
-            message: `Enviando oferta ${i + 1} de ${totalRequests}...`
+            total: toolRequests.length,
+            message: `Enviando oferta ${i + 1} de ${toolRequests.length}...`,
           });
         }
-        
-        if (toolRequest.tool.name === 'postMediaToWhatsApp') {
-            const result = await toolRequest.run();
-            if (result) {
-                sentCount++;
-            }
+
+        if (tr?.toolRequest?.name === 'postMediaToWhatsApp') {
+          const inp = (tr.toolRequest.input || {}) as any;
+          // sanitize imageUrl (não envie null/''/inválido)
+          if (!validImageUrl(inp.imageUrl)) {
+            if ('imageUrl' in inp) delete inp.imageUrl;
+          }
+          const ok = await (postMediaToWhatsApp as any)(inp);
+          if (ok) sentCount++;
+          else console.error('postMediaToWhatsApp returned false for:', inp);
         }
-        // Intervalo entre as mensagens individuais (para a mesma chamada de flow)
-        if (i < totalRequests - 1) {
-            await new Promise(resolve => setTimeout(resolve, 3000));
+
+        if (i < toolRequests.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 3000));
         }
-    }
-    
-    if (sentCount > 0) {
-      return { success: true, message: `${sentCount} de ${input.offers.length} ofertas enviadas com sucesso para o WhatsApp.` };
+      }
     } else {
-      return { success: false, message: 'Nenhuma oferta pôde ser enviada para o WhatsApp. Verifique os logs do servidor.' };
+      // Fallback: sem toolRequests – envio direto
+      for (let i = 0; i < preparedOffers.length; i++) {
+        const o = preparedOffers[i];
+
+        const caption =
+          `*${o.headline}*\n\n` +
+          `${o.title}\n\n` +
+          `${o.has_price_from ? `De: ~R$ ${o.price_from_fmt}~ | ` : ''}Por: *R$ ${o.price_fmt}* 🔥` +
+          `${o.has_price_from ? ` (${o.discount_label} ⬇️)` : ''}\n\n` +
+          `Achado na *${o.advertiser_name ?? 'Mercado Livre'}* ⚡\n\n` +
+          `${o.permalink}`;
+
+        if (streamingCallback) {
+          streamingCallback({
+            index: i + 1,
+            total: preparedOffers.length,
+            message: `Enviando oferta ${i + 1} de ${preparedOffers.length}...`,
+          });
+        }
+
+        const toolInput: any = {
+          groupId: input.whapiGroupId,
+          caption,
+          token: input.whapiToken,
+        };
+        const img = validImageUrl(o.image);
+        if (img) toolInput.imageUrl = img;
+
+        const ok = await (postMediaToWhatsApp as any)(toolInput);
+
+        if (ok) sentCount++;
+        else console.error('Fallback direct send returned false for:', { groupId: input.whapiGroupId, image: o.image, used: img });
+
+        if (i < preparedOffers.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+        }
+      }
+    }
+
+    if (sentCount > 0) {
+      return {
+        success: true,
+        message: `${sentCount} de ${input.offers.length} ofertas enviadas com sucesso para o WhatsApp.`,
+      };
+    } else {
+      return {
+        success: false,
+        message: 'Nenhuma oferta pôde ser enviada para o WhatsApp. Verifique os logs do servidor (Whapi).',
+      };
     }
   }
 );
